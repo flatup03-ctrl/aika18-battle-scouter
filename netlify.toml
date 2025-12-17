@@ -1,7 +1,6 @@
 # /netlify.toml (プロジェクトのルートに配置する【最終確定版・最適化版】)
 
 [build]
-  base = "frontend"
   command = "npm install && npm run build"
   publish = ".next"
 

@@ -1,35 +1,49 @@
-# Dependencies
-/node_modules/
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Lockfiles
-package-lock.json
+# dependencies
+/node_modules
+/frontend/node_modules
+/.pnp
+.pnp.*
 
-# Sensitive files
-service-account-key.json
-.env.local
-google-credentials.json
-innate-algebra-474710-f0-b696e49a005d.json
-test-vertex.*
+# testing
+/coverage
 
-# Next.js specific ignores
-frontend/node_modules/
-frontend/.next/
-
-# macOS
-.DS_Store
-
-# Build artifacts and dependencies
+# next.js
 /.next/
-/.netlify/
+/frontend/.next
+/out/
 
-# Backend specific
-/backend/node_modules/
-/backend-worker/node_modules/
+# production
+/build
 
-# Other
-dummy_100kb.mp4
-.next/
-node_modules/
-dist/
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp-debug.log*
+firebase-debug.log*
+*.log
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local env files
+.env.local
+.env*.local
+
+# Netlify
+.netlify
+
+# Secrets (DO NOT COMMIT)
 service-account-key.json
 google-credentials.json
+*-????????????-????????????????????.json
