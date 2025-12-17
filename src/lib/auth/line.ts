@@ -1,40 +1,79 @@
-import { getAuth, signInWithCustomToken } from "firebase/auth";
-import { app, auth } from "../firebase";
+// VPS API経由でのLINE認証
+// Firebase削除 - すべてVPS (162.43.30.218:8080) で処理
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://162.43.30.218:8080';
 
 /**
- * Sign in with a LINE ID token via your backend endpoint,
- * which returns a Firebase Custom Token.
+ * LINE IDトークンをVPSバックエンドに送信してセッションを取得
  */
-export async function signInWithLine(lineIdToken: string): Promise<void> {
-  const endpoint = process.env.NEXT_PUBLIC_AUTH_ENDPOINT;
-  if (!endpoint) {
-    throw new Error(
-      "NEXT_PUBLIC_AUTH_ENDPOINT is not set. Add it to Netlify environment variables and .env.local."
-    );
-  }
+export async function authenticateWithLineViaVPS(lineIdToken: string): Promise<{ userId: string; sessionToken: string }> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/line`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idToken: lineIdToken }),
+        });
 
-  // Send the LINE ID token to your backend to exchange for a Firebase custom token
-  const resp = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    // Note: do not send secrets from the client; lineIdToken is from user auth flow
-    body: JSON.stringify({ lineIdToken }),
-  });
+        if (!response.ok) {
+            throw new Error(`LINE authentication failed: ${response.statusText}`);
+        }
 
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`Auth endpoint error: ${resp.status} ${resp.statusText} ${text}`);
-  }
+        const data = await response.json();
 
-  const data: { firebaseCustomToken: string } = await resp.json();
-  const token = data.firebaseCustomToken;
-  if (!token) {
-    throw new Error("Auth endpoint did not return firebaseCustomToken");
-  }
+        // セッション情報をlocalStorageに保存
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('sessionToken', data.sessionToken);
+            localStorage.setItem('userId', data.userId);
+        }
 
-  // Use the typed auth instance; getAuth(app) is also fine if you prefer
-  const currentAuth = auth ?? getAuth(app);
-  await signInWithCustomToken(currentAuth, token);
+        return data;
+    } catch (error) {
+        console.error('LINE authentication error:', error);
+        throw error;
+    }
+}
+
+/**
+ * セッション検証
+ */
+export async function validateSession(sessionToken: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/validate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}`,
+            },
+        });
+
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * ログアウト - セッション情報をクリア
+ */
+export function logout(): void {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('sessionToken');
+        localStorage.removeItem('userId');
+    }
+}
+
+/**
+ * 現在のセッション情報を取得
+ */
+export function getCurrentSession(): { sessionToken: string | null; userId: string | null } {
+    if (typeof window === 'undefined') {
+        return { sessionToken: null, userId: null };
+    }
+
+    return {
+        sessionToken: localStorage.getItem('sessionToken'),
+        userId: localStorage.getItem('userId'),
+    };
 }
