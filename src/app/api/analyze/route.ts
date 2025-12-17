@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { analyzeMedia } from '@/lib/gemini';
 import { sendToDify } from '@/lib/dify';
+import { logToSheet } from '@/lib/sheets';
 
 /**
  * AI 18 Analyze API - Implementation Level
@@ -61,13 +62,23 @@ export async function POST(request: Request) {
 解析内容: ${geminiAnalysis}`
         );
 
+        const result = {
+            summary: systemSummary,
+            details: difyResponse.answer || difyResponse.message || geminiAnalysis,
+            raw_analysis: geminiAnalysis
+        };
+
+        // 5. Log to Google Sheets
+        await logToSheet({
+            userId,
+            type: `${type || 'video'} (UI)`,
+            userContent: file.name,
+            aiResponse: result.details
+        });
+
         return NextResponse.json({
             success: true,
-            result: {
-                summary: systemSummary,
-                details: difyResponse.answer || difyResponse.message || geminiAnalysis,
-                raw_analysis: geminiAnalysis
-            },
+            result: result,
         });
 
     } catch (error: any) {

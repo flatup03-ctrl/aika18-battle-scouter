@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { analyzeMedia } from '@/lib/gemini';
 import { sendToDify } from '@/lib/dify';
+import { logToSheet } from '@/lib/sheets';
 
 /**
  * LINE Messaging API Webhook
@@ -46,6 +47,13 @@ async function handleMessageEvent(event: any) {
     // Handle only Image and Video
     if (message.type !== 'image' && message.type !== 'video') {
         if (message.type === 'text') {
+            const userMsg = message.text;
+            await logToSheet({
+                userId,
+                type: 'Text (LINE)',
+                userContent: userMsg,
+                aiResponse: 'N/A (Standard Guide)'
+            });
             await replyMessage(replyToken, "画像か動画を送ってくれたら、AI 18号が解析しちゃうよ！🥊🥗\n今は格闘技のフォームや、食事の写真を待ってるね♪");
         }
         return;
@@ -83,7 +91,15 @@ async function handleMessageEvent(event: any) {
 
         const answer = difyResponse.answer || difyResponse.message || geminiAnalysis;
 
-        // 7. Reply to LINE
+        // 7. Log to Google Sheets
+        await logToSheet({
+            userId,
+            type: `${type} (LINE)`,
+            userContent: `MediaID: ${message.id}`,
+            aiResponse: answer
+        });
+
+        // 8. Reply to LINE
         await replyMessage(replyToken, answer);
 
     } catch (error) {

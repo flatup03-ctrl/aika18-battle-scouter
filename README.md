@@ -34,9 +34,18 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# trigger build
-trigger Cloud Build
-trigger Cloud Build
-trigger Cloud Build
-trigger Cloud Build
-# Triggering the build again
+## Environment Variables
+
+To make the AI 18 app (LIFF and LINE Bot) work correctly, set the following in Render:
+
+| Key | Description |
+| :--- | :--- |
+| `GOOGLE_API_KEY` | Gemini API Key |
+| `DIFY_API_KEY` | Dify API Key |
+| `LINE_CHANNEL_ACCESS_TOKEN` | Messaging API Access Token |
+| `LINE_CHANNEL_SECRET` | Messaging API Channel Secret |
+| `NEXT_PUBLIC_LIFF_ID` | LIFF ID |
+
+### Webhook URL
+Set your LINE Messaging API Webhook URL to: 
+`https://aika18-battle-scouter4-l8df.onrender.com/api/webhook`
