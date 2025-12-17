@@ -23,8 +23,8 @@ const nextConfig = {
   // 圧縮を有効化
   compress: true,
 
-  // トレーリングスラッシュを追加（静的ホスティング用）
-  trailingSlash: true,
+  // トレーリングスラッシュを無効化（API Webhookの308エラー防止）
+  trailingSlash: false,
 
   // ページ拡張子
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
