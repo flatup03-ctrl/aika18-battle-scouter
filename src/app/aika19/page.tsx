@@ -19,27 +19,27 @@ export default function AI18Page() {
     useEffect(() => {
         const initLiff = async () => {
             try {
-                const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-                if (!liffId) {
-                    console.warn('LIFF ID not found in env, using mock if local');
-                    // For local dev without LIFF ID, we might skip or fail.
-                    // Assuming user has set it up as per requirements.
-                }
+                const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2008276179-XxwM2QQD';
 
-                await liff.init({ liffId: liffId || '2008276179-XxwM2QQD' });
+                await liff.init({ liffId });
 
                 if (liff.isLoggedIn()) {
                     const p = await liff.getProfile();
                     setProfile(p);
                     setStatus('ready');
                 } else {
-                    // Forcing login for LIFF app usage
+                    // 開発環境、または外部ブラウザでの自動ログインを避ける
                     if (process.env.NODE_ENV === 'development') {
                         console.warn('Dev Mode: Skipping LINE Login');
                         setProfile({ userId: 'DEV_USER_ID', displayName: 'Dev User' });
                         setStatus('ready');
                     } else {
-                        liff.login();
+                        // ログインしていない場合のみログイン画面へ。
+                        // ただし、すでにURLにログイン処理用のパラメータ（codeなど）がある場合は待機
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (!urlParams.has('code')) {
+                            liff.login({ redirectUri: window.location.href });
+                        }
                     }
                 }
             } catch (e: any) {
