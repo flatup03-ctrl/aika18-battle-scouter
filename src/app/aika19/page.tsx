@@ -16,8 +16,7 @@ export default function AI18Page() {
     const [analysisType, setAnalysisType] = useState<'video' | 'image' | 'chat'>('video');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // AI 18 Character Image
-    const MASCOT_URL = "https://ik.imagekit.io/FLATUPGYM/TOPTOP.png?updatedAt=1756897198425";
+    const BG_IMAGE_URL = "https://ik.imagekit.io/FLATUPGYM/TOPTOP.png?updatedAt=1756897198425";
 
     useEffect(() => {
         const initLiff = async () => {
@@ -36,13 +35,13 @@ export default function AI18Page() {
                     } else {
                         const urlParams = new URLSearchParams(window.location.search);
                         if (!urlParams.has('code')) {
-                            liff.login({ redirectUri: window.location.href });
+                            liff.login({ redirectUri: window.location.href.split('?')[0] });
                         }
                     }
                 }
             } catch (e: any) {
                 console.error('LIFF Init Error', e);
-                setErrorMsg(`AI 18号、ちょっと困っちゃったみたい…！\n${e.message}`);
+                setErrorMsg(`AI 18号、ちょっと困っちゃったみたい…！\n通信環境を確認して、もう一度開いてみてね♪`);
                 setStatus('error');
             }
         };
@@ -58,7 +57,10 @@ export default function AI18Page() {
         setErrorMsg('');
 
         try {
-            const reqRes = await fetch(`${API_BASE_URL}/api/upload-request`, {
+            // Using relative paths for better reliability on the same domain
+            const baseUrl = '';
+
+            const reqRes = await fetch(`${baseUrl}/api/upload-request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -68,7 +70,7 @@ export default function AI18Page() {
                 })
             });
 
-            if (!reqRes.ok) throw new Error(`準備中…うまくつながらなかったみたい`);
+            if (!reqRes.ok) throw new Error(`準備中…うまくつながらなかったみたい（Status: ${reqRes.status}）`);
             const { uploadUrl, fileKey } = await reqRes.json();
             setProgress(30);
 
@@ -82,7 +84,7 @@ export default function AI18Page() {
             setProgress(70);
             setStatus('processing');
 
-            const analyzeRes = await fetch(`${API_BASE_URL}/api/analyze`, {
+            const analyzeRes = await fetch(`${baseUrl}/api/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -92,7 +94,7 @@ export default function AI18Page() {
                 })
             });
 
-            if (!analyzeRes.ok) throw new Error('解析中にエラーが発生しちゃった');
+            if (!analyzeRes.ok) throw new Error(`解析中にエラーが発生しちゃった（Status: ${analyzeRes.status}）`);
             const data = await analyzeRes.json();
             setAnalysisResult(data.result);
             setProgress(100);
@@ -109,7 +111,7 @@ export default function AI18Page() {
         setAnalysisType(type);
         if (type === 'chat') {
             setErrorMsg('AI 18号、ただいま準備中なの♪\nあなたがもっと使いやすくて楽しいと感じられるように、一生懸命パワーアップしているところなんだ！\n完成まで、ワクワクしながら待っててくれると嬉しいな！きっと素敵な機能になるはずだよ♪');
-            setStatus('error'); // Using error UI style for the "WIP" message
+            setStatus('error');
             return;
         }
         if (fileInputRef.current) {
@@ -120,40 +122,34 @@ export default function AI18Page() {
 
     return (
         <div className="min-h-screen relative overflow-hidden bg-white text-[#4A4A4A] font-sans selection:bg-pink-100/50">
-            {/* Ambient Patterns & Background */}
-            <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-[5%] left-[10%] w-32 h-32 bg-pink-100 rounded-full blur-3xl opacity-40"></div>
-                <div className="absolute bottom-[10%] right-[5%] w-48 h-48 bg-blue-100 rounded-full blur-3xl opacity-40"></div>
-                <div className="absolute top-[30%] right-[15%] w-24 h-24 bg-yellow-100 rounded-full blur-2xl opacity-30 animate-pulse"></div>
-                {/* Subtle Dotted Pattern */}
-                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#C4C4C4 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+            {/* Background Image Layer */}
+            <div
+                className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40grayscale-[20%]"
+                style={{ backgroundImage: `url(${BG_IMAGE_URL})`, backgroundAttachment: 'fixed' }}
+            ></div>
+
+            {/* Ambient Overlays */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-white/20 backdrop-blur-[2px]">
+                <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-white to-transparent"></div>
+                <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-white to-transparent"></div>
             </div>
 
             <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
-                <div className="w-full max-w-md bg-white border-[6px] border-[#F8FAFC] rounded-[4.5rem] p-10 shadow-[0_30px_70px_rgba(0,0,0,0.03)] flex flex-col items-center text-center relative overflow-hidden transition-all duration-700">
+                <div className="w-full max-w-md bg-white/70 backdrop-blur-2xl border-[6px] border-white/80 rounded-[4.5rem] p-10 shadow-[0_40px_100px_rgba(0,0,0,0.08)] flex flex-col items-center text-center relative overflow-hidden transition-all duration-700">
 
-                    {/* Interior Glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-32 bg-pink-50/50 blur-[60px] rounded-full"></div>
-
-                    {/* Mascot Section */}
-                    <div className="mb-8 z-10 transition-transform duration-700 hover:scale-105 cursor-pointer">
-                        <div className="absolute inset-0 bg-pink-100/30 rounded-full blur-3xl opacity-50"></div>
-                        <div className="relative w-40 h-40 rounded-full border-[6px] border-[#F1F5F9] shadow-inner overflow-hidden flex items-center justify-center bg-white">
-                            <Image
-                                src={MASCOT_URL}
-                                alt="AI 18号 Mascot"
-                                fill
-                                className="object-cover"
-                                unoptimized
-                            />
-                        </div>
+                    {/* Header Decoration */}
+                    <div className="mb-6 flex space-x-2 opacity-30">
+                        <span className="w-2 h-2 rounded-full bg-pink-300"></span>
+                        <span className="w-2 h-2 rounded-full bg-blue-300"></span>
+                        <span className="w-2 h-2 rounded-full bg-yellow-300"></span>
                     </div>
 
                     <div className="z-10 relative">
-                        <h1 className="text-3xl font-black mb-1 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] bg-clip-text text-transparent tracking-tighter">
+                        <p className="text-[10px] font-black text-[#FF8DA1] tracking-[0.6em] mb-2 uppercase">AI 18 Mos.</p>
+                        <h1 className="text-4xl font-black mb-1 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] bg-clip-text text-transparent tracking-tighter">
                             AI 18号
                         </h1>
-                        <p className="text-[#8B8B8B] text-sm font-bold mb-10 leading-relaxed">
+                        <p className="text-[#64748B] text-sm font-bold mb-10 leading-relaxed">
                             AI 18号が、あなたの毎日を<br />
                             <span className="text-[#FF8DA1]">そっとサポートしちゃうよ♪</span>
                         </p>
@@ -162,23 +158,23 @@ export default function AI18Page() {
                     {status === 'initializing' && (
                         <div className="py-10 flex flex-col items-center space-y-4">
                             <div className="w-8 h-8 border-4 border-[#FFDDE4] border-t-[#FF8DA1] rounded-full animate-spin"></div>
-                            <span className="text-[10px] font-black text-[#FF8DA1] tracking-[0.2em] uppercase animate-pulse">準備中だよ、まっててね♪</span>
+                            <span className="text-[10px] font-black text-[#FF8DA1] tracking-[0.2em] uppercase animate-pulse">システム起動中...</span>
                         </div>
                     )}
 
                     {status === 'ready' && (
                         <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-5 duration-700">
                             {[
-                                { id: 'video', label: '戦闘力分析', desc: 'かっこいい自分をチェック！', icon: '✨', bg: 'bg-[#B0E0E6]', text: 'text-[#4682B4]' },
-                                { id: 'image', label: 'カロリー計算', desc: '今日のごはんは何かな？', icon: '🍎', bg: 'bg-[#C8F0C8]', text: 'text-[#2E8B57]' },
-                                { id: 'chat', label: 'お悩み相談', desc: 'なんでもおはなししてね♪', icon: '💖', bg: 'bg-[#FFD1DC]', text: 'text-[#DB7093]' },
+                                { id: 'video', label: '戦闘力分析', desc: '格闘フォームをチェック！', icon: '🥊', bg: 'bg-[#B0E0E6]/90', text: 'text-[#4682B4]' },
+                                { id: 'image', label: 'カロリー計算', desc: '今日のごはんは何かな？', icon: '🥗', bg: 'bg-[#C8F0C8]/90', text: 'text-[#2E8B57]' },
+                                { id: 'chat', label: 'お悩み相談', desc: 'なんでもはなしてね♪', icon: '🌸', bg: 'bg-[#FFD1DC]/90', text: 'text-[#DB7093]' },
                             ].map((item) => (
                                 <button
                                     key={item.id}
                                     onClick={() => triggerAction(item.id as any)}
-                                    className={`relative w-full p-5 rounded-[2.5rem] ${item.bg} group transition-all duration-300 hover:scale-[1.03] active:scale-[0.96] shadow-md flex items-center gap-4 border-b-4 border-black/5`}
+                                    className={`relative w-full p-5 rounded-[2.8rem] ${item.bg} group transition-all duration-300 hover:scale-[1.03] active:scale-[0.96] shadow-sm hover:shadow-md flex items-center gap-4 border-b-4 border-black/5`}
                                 >
-                                    <div className="w-14 h-14 bg-white/60 rounded-[1.5rem] flex items-center justify-center text-2xl shadow-sm group-hover:rotate-12 transition-transform">
+                                    <div className="w-14 h-14 bg-white/70 rounded-[1.8rem] flex items-center justify-center text-3xl shadow-sm group-hover:rotate-12 transition-transform duration-500">
                                         {item.icon}
                                     </div>
                                     <div className="text-left">
@@ -194,45 +190,45 @@ export default function AI18Page() {
                     )}
 
                     {status === 'uploading' && (
-                        <div className="w-full py-8 space-y-4">
-                            <div className="flex justify-between items-end mb-2">
+                        <div className="w-full py-8 space-y-5">
+                            <div className="flex justify-between items-end mb-2 px-2">
                                 <span className="text-xs font-black text-[#FF8DA1] tracking-widest uppercase">情報をとどけ中...</span>
                                 <span className="text-3xl font-black text-[#FF8DA1] italic">{progress}%</span>
                             </div>
-                            <div className="h-4 w-full bg-[#FFF0F3] rounded-full overflow-hidden border-2 border-white">
-                                <div className="h-full bg-gradient-to-r from-[#FFB6C1] to-[#FF8DA1] transition-all duration-300 rounded-full" style={{ width: `${progress}%` }}></div>
+                            <div className="h-5 w-full bg-[#F1F5F9] rounded-full overflow-hidden border-2 border-white shadow-inner">
+                                <div className="h-full bg-gradient-to-r from-[#FFB6C1] to-[#FF8DA1] transition-all duration-500 rounded-full" style={{ width: `${progress}%` }}></div>
                             </div>
-                            <p className="text-[10px] text-[#A0A0A0]">わくわくして待っててね♪</p>
+                            <p className="text-[10px] font-bold text-[#94A3B8]">わくわくして待っててね♪</p>
                         </div>
                     )}
 
                     {status === 'processing' && (
                         <div className="py-10 flex flex-col items-center">
-                            <div className="relative w-24 h-24 mb-6">
-                                <div className="absolute inset-0 bg-pink-100/50 rounded-full animate-ping"></div>
-                                <div className="absolute inset-0 border-4 border-dashed border-[#FFB6C1] rounded-full animate-spin"></div>
-                                <div className="absolute inset-4 bg-white/40 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl animate-bounce">
-                                    🔍
+                            <div className="relative w-28 h-28 mb-8">
+                                <div className="absolute inset-0 bg-pink-100/40 rounded-full animate-ping"></div>
+                                <div className="absolute inset-0 border-4 border-dashed border-[#FFB6C1]/50 rounded-full animate-spin duration-[3000ms]"></div>
+                                <div className="absolute inset-4 bg-white/60 backdrop-blur-sm rounded-full flex items-center justify-center text-4xl animate-bounce">
+                                    🔮
                                 </div>
                             </div>
                             <h2 className="text-2xl font-black text-[#FF8DA1] italic">解析開始！</h2>
-                            <p className="text-xs text-[#8B8B8B] mt-2 font-bold">AI 18号が、一生懸命みてるよ！</p>
+                            <p className="text-xs text-[#64748B] mt-2 font-bold uppercase tracking-wider">Scaning the high context...</p>
                         </div>
                     )}
 
                     {status === 'complete' && (
                         <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                            <div className="bg-[#E6F9F3] border-4 border-white p-8 rounded-[3.5rem] shadow-lg relative overflow-hidden group">
-                                <h3 className="text-2xl font-black text-[#2E8B57] mb-4 flex items-center justify-center gap-2">
-                                    ✨ できたよ！ ✨
+                            <div className="bg-[#F0FDF4] border-4 border-white p-8 rounded-[3.5rem] shadow-lg relative overflow-hidden group">
+                                <h3 className="text-2xl font-black text-[#166534] mb-4 flex items-center justify-center gap-2">
+                                    ✨ 結果が出たよ！ ✨
                                 </h3>
-                                <div className="text-sm text-[#4A4A4A] leading-relaxed font-bold bg-white/50 p-6 rounded-[2rem] border border-white/50 text-left">
+                                <div className="text-sm text-[#334155] leading-relaxed font-bold bg-white/60 p-6 rounded-[2.2rem] border border-white/80 text-left">
                                     {analysisResult?.details || '素晴らしい成果を検知しました♪'}
                                 </div>
                             </div>
                             <button
                                 onClick={() => setStatus('ready')}
-                                className="w-full py-5 bg-[#FFD1DC] text-[#DB7093] font-black rounded-[2.5rem] hover:bg-[#FFB6C1] hover:text-white transition-all shadow-xl active:scale-95"
+                                className="w-full py-5 bg-[#FFD1DC] text-[#DB7093] font-black rounded-[2.5rem] hover:bg-[#FFB6C1] hover:text-white transition-all shadow-lg active:scale-95"
                             >
                                 もっとあそぶ？
                             </button>
@@ -240,22 +236,22 @@ export default function AI18Page() {
                     )}
 
                     {status === 'error' && (
-                        <div className="w-full py-8 space-y-6">
-                            <div className="bg-white border-4 border-[#FFF0F3] p-8 rounded-[3.5rem] shadow-xl relative">
-                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white rounded-full border-4 border-[#FFF0F3] flex items-center justify-center text-4xl shadow-md">
-                                    {errorMsg.includes('準備中') ? "🛠️" : "😢"}
+                        <div className="w-full py-8 space-y-6 animate-in zoom-in duration-300">
+                            <div className="bg-white border-4 border-[#FFF1F2] p-8 rounded-[3.8rem] shadow-xl relative mt-4">
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-white rounded-full border-4 border-[#FFF1F2] flex items-center justify-center text-5xl shadow-sm">
+                                    {errorMsg.includes('準備中') ? "🛠️" : "💦"}
                                 </div>
-                                <h3 className="text-xl font-black text-[#FF8DA1] mt-4 mb-2">
-                                    {errorMsg.includes('準備中') ? "もう少しだけ待っていてね！" : "あれれ、ごめんなさい…！"}
+                                <h3 className="text-2xl font-black text-[#FF8DA1] mt-8 mb-2 tracking-tight">
+                                    {errorMsg.includes('準備中') ? "もう少しだけ待ってて！" : "あれれ、ごめんなさい…！"}
                                 </h3>
-                                <div className="text-xs text-[#8B8B8B] bg-[#FFF9FB] p-6 rounded-[2rem] font-bold leading-relaxed mb-4 text-left whitespace-pre-wrap">
+                                <div className="text-xs text-[#64748B] bg-[#FFF9FB] p-6 rounded-[2.2rem] font-bold leading-relaxed mb-6 text-left whitespace-pre-wrap border border-white">
                                     {errorMsg}
                                 </div>
                                 <button
                                     onClick={() => setStatus('ready')}
-                                    className="w-full py-5 bg-[#FFB6C1] text-white font-black rounded-[2rem] hover:bg-[#FF8DA1] transition-all shadow-md active:scale-95"
+                                    className="w-full py-5 bg-[#FF8DA1] text-white font-black rounded-[2.2rem] hover:bg-[#FF7A91] transition-all shadow-md active:scale-95"
                                 >
-                                    {errorMsg.includes('準備中') ? "わかった！楽しみに待ってるね！" : "優しく再チャレンジ！"}
+                                    {errorMsg.includes('準備中') ? "わかった！楽しみにしてるね！" : "優しく再チャレンジ！"}
                                 </button>
                             </div>
                         </div>
@@ -264,12 +260,11 @@ export default function AI18Page() {
                     <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
                 </div>
 
-                <div className="mt-12 flex flex-col items-center gap-2 opacity-30">
-                    <p className="text-[9px] font-black text-[#FFB6C1] tracking-[0.6em] uppercase">AI 18 HEART CORE</p>
+                <div className="mt-12 flex flex-col items-center gap-3 opacity-20">
                     <div className="flex gap-2">
-                        <span className="w-1 h-1 bg-pink-300 rounded-full animate-bounce"></span>
-                        <span className="w-1 h-1 bg-blue-300 rounded-full animate-bounce delay-100"></span>
-                        <span className="w-1 h-1 bg-green-300 rounded-full animate-bounce delay-200"></span>
+                        <span className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></span>
+                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-200"></span>
+                        <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse delay-500"></span>
                     </div>
                 </div>
             </main>
