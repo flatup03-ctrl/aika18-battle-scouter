@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // 静的HTMLエクスポートを有効化（最高のパフォーマンス）
-  // output: 'export', // Disabled to allow API routes (Node.js runtime)
+  output: 'export',
 
   // 画像最適化設定（静的エクスポート用）
   images: {
@@ -29,16 +29,6 @@ const nextConfig = {
 
   // ページ拡張子
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-
-  // Proxy API requests to VPS backend to avoid Mixed Content (https -> http) errors
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://162.43.30.218:8080/api/:path*',
-      },
-    ];
-  },
 };
 
 export default nextConfig;
