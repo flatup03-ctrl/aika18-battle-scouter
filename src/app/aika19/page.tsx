@@ -25,7 +25,7 @@ export default function AI18Page() {
                     // Assuming user has set it up as per requirements.
                 }
 
-                await liff.init({ liffId: liffId || 'YOUR_LIFF_ID' });
+                await liff.init({ liffId: liffId || '2008276179-XxwM2QQD' });
 
                 if (liff.isLoggedIn()) {
                     const p = await liff.getProfile();
