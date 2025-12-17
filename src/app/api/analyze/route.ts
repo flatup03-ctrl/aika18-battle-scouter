@@ -1,73 +1,78 @@
 import { NextResponse } from 'next/server';
 import { analyzeMedia } from '@/lib/gemini';
 import { sendToDify } from '@/lib/dify';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+/**
+ * AI 18 Analyze API - Implementation Level
+ * This route handles real-time media analysis using Gemini 1.5 Flash.
+ */
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { fileKey, userId, type } = body;
+        // Parse the incoming multipart form data (real implementation)
+        const formData = await request.formData();
+        const file = formData.get('file') as File | null;
+        const userId = formData.get('userId') as string || 'GUEST';
+        const type = formData.get('type') as string || 'video';
 
-        console.log(`Processing ${type || 'media'} analysis for ${fileKey} (User: ${userId})`);
-
-        // Check for required API keys
-        if (!process.env.GOOGLE_API_KEY) {
-            return NextResponse.json({ error: 'GOOGLE_API_KEY is not configured on the server.' }, { status: 501 });
+        if (!file) {
+            return NextResponse.json({ error: 'ファイルが見つかりません。' }, { status: 400 });
         }
 
-        // --- Prompt Selection Logic ---
+        console.log(`Analyzing: ${file.name} (Type: ${type}, Size: ${file.size})`);
+
+        // Check for required configuration
+        const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+        if (!GOOGLE_API_KEY) {
+            return NextResponse.json({ error: 'GOOGLE_API_KEYが設定されていません。' }, { status: 501 });
+        }
+
+        // 1. Process File to Base64
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
+
+        // 2. Determine Prompt
         let prompt = "格闘技のフォーム分析をするトレーナーとして、動画（または画像）を見て、動きの正確さや改善点を1つ専門的にアドバイスしてください。";
         let userContext = "格闘技初心者、褒められて伸びるタイプ";
         let systemSummary = "戦闘力分析結果";
 
         if (type === 'image') {
             prompt = "管理栄養士として、この食事画像を見て、含まれる主な食材を推測し、推定カロリーと健康へのアドバイスを優しく簡潔に述べてください。";
-            userContext = "健康に気を使っている、具体的なアドバイスが欲しいタイプ";
+            userContext = "健康に気を使っています。具体的で前向きなアドバイスが欲しいです。";
             systemSummary = "食事・カロリー診断結果";
-        } else if (type === 'chat') {
-            // Placeholder for chat if it ever hits this route
-            prompt = "ライフアドバイザーとして、ユーザーの悩みに対して共感し、前向きなアドバイスをしてください。";
-            userContext = "癒やしを求めているユーザー";
-            systemSummary = "お悩み相談の結果";
         }
 
-        // --- Gemini Call ---
-        // Note: In a real implementation with R2/S3, we would first download the file from 'fileKey'
-        // Since we are currently in a transition/mock stage, we simulate the Gemini vision response 
-        // with a high-quality analysis if the real media parsing isn't yet fully wired with R2.
+        // 3. ACTUAL Gemini Analysis
+        const geminiAnalysis = await analyzeMedia(file.type, base64Data, prompt);
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        // For a TRULY functional app, we'd pass the media here. 
-        // For now, we generate a high-quality contextual response that Dify will refine.
-        const result = await model.generateContent(prompt);
-        const geminiAnalysis = result.response.text();
-
-        // --- Dify Call (Persona Transformation) ---
+        // 4. Persona Transformation via Dify
         const difyResponse = await sendToDify(
             {
                 analysis_result: geminiAnalysis,
                 user_context: userContext,
-                task_type: type || 'video'
+                task_type: type
             },
             userId,
-            `あなたはAI 18号という親しみやすいキャラクターです。以下の解析結果を基に、ユーザーへ話しかけてください。\n解析内容: ${geminiAnalysis}`
+            `あなたはAI 18号という親しみやすいキャラクターです。以下の解析結果を基に、ユーザーへ癒やしと元気を与える口調でアドバイスしてください。\n解析結果: ${geminiAnalysis}`
         );
 
         return NextResponse.json({
             success: true,
             result: {
                 summary: systemSummary,
-                details: difyResponse.answer || difyResponse.message || "解析が完了しました！",
+                details: difyResponse.answer || difyResponse.message || geminiAnalysis,
                 raw_analysis: geminiAnalysis
             },
         });
 
     } catch (error: any) {
-        console.error('Analyze Error:', error);
+        console.error('Analyze API Error:', error);
+
+        // Handle specific fetch errors (like timeouts or payload too large)
+        if (error.message?.includes('fetch')) {
+            return NextResponse.json({ error: '通信エラーが発生しました。ファイルのサイズが大きすぎる可能性があります。' }, { status: 502 });
+        }
+
         return NextResponse.json(
             { error: error.message || 'Internal Server Error' },
             { status: 500 }

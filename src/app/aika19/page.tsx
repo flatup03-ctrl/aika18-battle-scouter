@@ -53,48 +53,38 @@ export default function AI18Page() {
         if (!file) return;
 
         setStatus('uploading');
-        setProgress(10);
+        setProgress(20);
         setErrorMsg('');
 
         try {
-            // Using relative paths for better reliability on the same domain
-            const baseUrl = '';
+            // Use absolute path for reliability
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const analyzeUrl = `${origin}/api/analyze`;
 
-            const reqRes = await fetch(`${baseUrl}/api/upload-request`, {
+            // Create FormData to send the REAL file
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', profile?.userId || 'GUEST_USER');
+            formData.append('type', analysisType);
+
+            // Track progress manually (simulated for Fetch, but real for the flow)
+            const interval = setInterval(() => {
+                setProgress(prev => (prev < 90 ? prev + 5 : prev));
+            }, 500);
+
+            const analyzeRes = await fetch(analyzeUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fileName: file.name,
-                    contentType: file.type,
-                    analysisType
-                })
+                body: formData,
+                // Do NOT set Content-Type header when using FormData, browser does it with boundary
             });
 
-            if (!reqRes.ok) throw new Error(`準備中…うまくつながらなかったみたい（Status: ${reqRes.status}）`);
-            const { uploadUrl, fileKey } = await reqRes.json();
-            setProgress(30);
+            clearInterval(interval);
 
-            const uploadRes = await fetch(uploadUrl, {
-                method: 'PUT',
-                body: file,
-                headers: { 'Content-Type': file.type }
-            });
+            if (!analyzeRes.ok) {
+                const errData = await analyzeRes.json().catch(() => ({}));
+                throw new Error(errData.error || `解析エラーが発生しました（Status: ${analyzeRes.status}）`);
+            }
 
-            if (!uploadRes.ok) throw new Error('情報をとどけられなかったみたい…');
-            setProgress(70);
-            setStatus('processing');
-
-            const analyzeRes = await fetch(`${baseUrl}/api/analyze`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fileKey,
-                    userId: profile?.userId || 'GUEST_USER',
-                    type: analysisType
-                })
-            });
-
-            if (!analyzeRes.ok) throw new Error(`解析中にエラーが発生しちゃった（Status: ${analyzeRes.status}）`);
             const data = await analyzeRes.json();
             setAnalysisResult(data.result);
             setProgress(100);
@@ -102,7 +92,7 @@ export default function AI18Page() {
 
         } catch (err: any) {
             console.error('Flow Error:', err);
-            setErrorMsg(err.message || '予期せぬエラーが発生しました');
+            setErrorMsg(err.message || '通信エラーが発生しました。インターネット接続を確認してね♪');
             setStatus('error');
         }
     };
