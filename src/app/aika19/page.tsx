@@ -159,83 +159,102 @@ export default function AIKA19Page() {
 
             <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
 
-                <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center">
+                <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
 
-                    <h1 className="text-3xl font-black mb-2 bg-gradient-to-r from-pink-500 to-purple-400 bg-clip-text text-transparent">
+                    {/* Interior Glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-pink-500/20 blur-[60px] rounded-full pointer-events-none"></div>
+
+                    <h1 className="text-4xl font-extrabold mb-2 tracking-tight bg-gradient-to-br from-white via-pink-200 to-pink-500 bg-clip-text text-transparent drop-shadow-sm z-10">
                         AIKA 19
                     </h1>
-                    <p className="text-gray-300 mb-8 text-sm">
+                    <p className="text-pink-100/70 mb-10 text-sm font-medium tracking-wide z-10">
                         次世代AI格闘技フォーム解析
                     </p>
 
                     {status === 'initializing' && (
-                        <div className="animate-pulse text-gray-400">Loading LIFF...</div>
+                        <div className="flex flex-col items-center space-y-3 z-10 text-pink-200/60 animate-pulse">
+                            <div className="w-5 h-5 border-2 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-xs tracking-wider">SYSTEM INITIALIZING...</span>
+                        </div>
                     )}
 
                     {status === 'ready' && (
-                        <>
-                            <div className="mb-8 relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                        <div className="z-10 w-full animate-in fade-in zoom-in duration-500">
+                            <div className="mb-8 relative group cursor-pointer" onClick={triggerFileInput}>
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-full blur opacity-60 group-hover:opacity-100 transition duration-500 group-hover:duration-200 animate-tilt"></div>
                                 <button
-                                    onClick={triggerFileInput}
-                                    className="relative px-8 py-4 bg-black rounded-full leading-none flex items-center divide-x divide-gray-600"
+                                    className="relative w-full px-8 py-5 bg-slate-900 rounded-full leading-none flex items-center justify-center space-x-3 transition-transform active:scale-95 group-hover:bg-slate-800"
                                 >
-                                    <span className="flex items-center space-x-3">
-                                        <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                                        <span className="text-gray-100 font-bold">動画を選択して解析</span>
-                                    </span>
+                                    <svg className="w-6 h-6 text-pink-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    <span className="text-white font-bold tracking-wide">動画を選択して解析</span>
                                 </button>
                             </div>
-                            <p className="text-xs text-gray-400 max-w-xs">
-                                ※ 動画は1分以内のものをアップロードしてください。<br />
-                                ※ 解析結果はLINEトークに送信されます。
-                            </p>
-                        </>
+                            <div className="px-4 py-3 bg-white/5 rounded-xl border border-white/5 backdrop-blur-sm">
+                                <p className="text-[10px] text-gray-400 leading-relaxed text-left">
+                                    <span className="text-pink-400 font-bold mr-1">NOTE:</span>
+                                    1分以内の動画フォームをアップロードしてください。解析結果はLINEで自動通知されます。
+                                </p>
+                            </div>
+                        </div>
                     )}
 
                     {status === 'uploading' && (
-                        <div className="w-full">
-                            <p className="mb-2 text-pink-400 font-bold animate-pulse">Uploading...</p>
-                            <div className="w-full bg-gray-700 rounded-full h-2.5">
-                                <div className="bg-gradient-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                        <div className="w-full z-10 py-4">
+                            <p className="mb-3 text-pink-300 text-sm font-bold tracking-widest animate-pulse flex justify-between">
+                                <span>UPLOADING</span>
+                                <span>{progress}%</span>
+                            </p>
+                            <div className="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-gradient-to-r from-pink-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(236,72,153,0.5)]" style={{ width: `${progress}%` }}></div>
                             </div>
                         </div>
                     )}
 
                     {status === 'processing' && (
-                        <div className="flex flex-col items-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mb-4"></div>
-                            <p className="text-lg font-bold">解析リクエスト送信中...</p>
+                        <div className="flex flex-col items-center z-10 py-6">
+                            <div className="relative w-16 h-16 mb-6">
+                                <div className="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
+                                <div className="absolute inset-0 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="absolute inset-4 bg-pink-500 rounded-full animate-ping opacity-20"></div>
+                            </div>
+                            <p className="text-lg font-bold text-white tracking-widest">ANALYZING</p>
+                            <p className="text-pink-200/50 text-xs mt-2">AIが映像を解析しています...</p>
                         </div>
                     )}
 
                     {status === 'complete' && (
-                        <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4 w-full">
-                            <svg className="w-12 h-12 text-green-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <h3 className="text-xl font-bold text-green-300 mb-1">受付完了！</h3>
-                            <p className="text-sm text-gray-200">
-                                AIが動画を解析中です。<br />
-                                完了次第、LINE通知をお送りしますので<br />
-                                この画面を閉じてお待ちください。
+                        <div className="bg-gradient-to-b from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 w-full z-10 animate-in fade-in slide-in-from-bottom-4">
+                            <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-emerald-300 mb-2 tracking-wide">REQUEST ACCEPTED</h3>
+                            <p className="text-sm text-emerald-100/70 leading-relaxed mb-6">
+                                解析リクエストを受け付けました。<br />
+                                完了次第、LINE通知をお送りします。
                             </p>
                             <button
                                 onClick={() => liff.closeWindow()}
-                                className="mt-4 text-xs underline text-gray-400 hover:text-white"
+                                className="text-xs font-bold text-white bg-emerald-600/80 hover:bg-emerald-500 px-6 py-2 rounded-full transition-colors"
                             >
-                                [閉じる]
+                                閉じる
                             </button>
                         </div>
                     )}
 
                     {status === 'error' && (
-                        <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 w-full">
-                            <h3 className="text-lg font-bold text-red-400 mb-1">エラーが発生しました</h3>
-                            <p className="text-sm text-gray-200 mb-4">{errorMsg}</p>
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 w-full z-10 animate-in fade-in slide-in-from-bottom-4">
+                            <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-red-400 mb-2">ERROR</h3>
+                            <p className="text-sm text-red-200/70 mb-6 font-mono bg-black/20 p-2 rounded text-left overflow-x-auto whitespace-nowrap">
+                                {errorMsg}
+                            </p>
                             <button
                                 onClick={() => setStatus('ready')}
-                                className="px-4 py-2 bg-red-600 rounded-lg text-sm font-bold hover:bg-red-500 transition"
+                                className="px-6 py-2 bg-red-500/80 hover:bg-red-500 rounded-full text-sm font-bold text-white transition-colors"
                             >
-                                もう一度試す
+                                RETRY
                             </button>
                         </div>
                     )}
@@ -250,8 +269,10 @@ export default function AIKA19Page() {
 
                 </div>
 
-                <div className="mt-8 text-xs text-gray-500 font-mono">
-                    Powered by Gemini Pro 1.5 & Cloudflare R2
+                <div className="mt-8 flex items-center space-x-2 text-[10px] text-pink-200/20 font-mono tracking-widest uppercase">
+                    <span>AI Analysis Core v2.0</span>
+                    <span className="w-1 h-1 bg-pink-500 rounded-full"></span>
+                    <span>Gemini Pro Vision</span>
                 </div>
 
             </main>
