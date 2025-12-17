@@ -24,7 +24,9 @@ export async function POST(request: Request) {
         // Check for required configuration
         const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
         if (!GOOGLE_API_KEY) {
-            return NextResponse.json({ error: 'GOOGLE_API_KEYが設定されていません。' }, { status: 501 });
+            return NextResponse.json({
+                error: 'GOOGLE_API_KEYが設定されていません。RenderのEnvironment設定でキーを追加してください。'
+            }, { status: 501 });
         }
 
         // 1. Process File to Base64
