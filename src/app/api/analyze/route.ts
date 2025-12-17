@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         const geminiAnalysis = await analyzeMedia(file.type, base64Data, prompt);
 
         // 4. Persona Transformation via Dify
+        const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
         const difyResponse = await sendToDify(
             {
                 analysis_result: geminiAnalysis,
@@ -55,7 +56,9 @@ export async function POST(request: Request) {
                 task_type: type
             },
             userId,
-            `あなたはAI 18号という親しみやすいキャラクターです。以下の解析結果を基に、ユーザーへ癒やしと元気を与える口調でアドバイスしてください。\n解析結果: ${geminiAnalysis}`
+            `あなたは「AI 18号」として、親しみやすく、かつ専門的なトレーナー（または栄養士）の顔も持つキャラクターです。
+ユーザーが送ってくれた${taskLabel}の解析結果をもとに、褒めつつも役に立つアドバイスを1つ伝えてください。
+解析内容: ${geminiAnalysis}`
         );
 
         return NextResponse.json({

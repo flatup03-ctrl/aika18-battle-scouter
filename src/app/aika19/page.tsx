@@ -114,7 +114,7 @@ export default function AI18Page() {
         <div className="min-h-screen relative overflow-hidden bg-white text-[#4A4A4A] font-sans selection:bg-pink-100/50">
             {/* Background Image Layer */}
             <div
-                className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40grayscale-[20%]"
+                className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40 grayscale-[20%]"
                 style={{ backgroundImage: `url(${BG_IMAGE_URL})`, backgroundAttachment: 'fixed' }}
             ></div>
 
@@ -134,14 +134,17 @@ export default function AI18Page() {
                         <span className="w-2 h-2 rounded-full bg-yellow-300"></span>
                     </div>
 
-                    <div className="z-10 relative">
+                    <div className="z-10 relative animate-in fade-in zoom-in duration-1000">
                         <p className="text-[10px] font-black text-[#FF8DA1] tracking-[0.6em] mb-2 uppercase">AI 18 Mos.</p>
-                        <h1 className="text-4xl font-black mb-1 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] bg-clip-text text-transparent tracking-tighter">
+                        <h1 className="text-4xl font-black mb-1 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] bg-clip-text text-transparent tracking-tighter drop-shadow-sm">
                             AI 18号
                         </h1>
                         <p className="text-[#64748B] text-sm font-bold mb-10 leading-relaxed">
                             AI 18号が、あなたの毎日を<br />
-                            <span className="text-[#FF8DA1]">そっとサポートしちゃうよ♪</span>
+                            <span className="text-[#FF8DA1] relative group">
+                                そっとサポートしちゃうよ♪
+                                <span className="absolute -bottom-1 left-0 w-full h-1 bg-pink-100 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></span>
+                            </span>
                         </p>
                     </div>
 
@@ -212,7 +215,7 @@ export default function AI18Page() {
                                 <h3 className="text-2xl font-black text-[#166534] mb-4 flex items-center justify-center gap-2">
                                     ✨ 結果が出たよ！ ✨
                                 </h3>
-                                <div className="text-sm text-[#334155] leading-relaxed font-bold bg-white/60 p-6 rounded-[2.2rem] border border-white/80 text-left">
+                                <div className="text-sm text-[#334155] leading-relaxed font-bold bg-white/60 p-6 rounded-[2.2rem] border border-white/80 text-left max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-pink-200 scrollbar-track-transparent">
                                     {analysisResult?.details || '素晴らしい成果を検知しました♪'}
                                 </div>
                             </div>
