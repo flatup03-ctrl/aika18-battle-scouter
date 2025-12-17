@@ -2,12 +2,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI
-const apiKey = process.env.GOOGLE_API_KEY;
-if (!apiKey) {
-    console.error("GOOGLE_API_KEY is not set in environment variables.");
+const apiKey = process.env.GOOGLE_API_KEY || "AIzaSyC49qKisv5ogRAf9Vf66Mc4fuBWGS0jUjA";
+if (!process.env.GOOGLE_API_KEY) {
+    console.warn("GOOGLE_API_KEY is not set in environment variables. Using fallback key.");
 }
 
-const genAI = new GoogleGenerativeAI(apiKey || "AIzaSyC49qKisv5ogRAf9Vf66Mc4fuBWGS0jUjA");
+const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
  * 動画や画像を解析する共通関数
