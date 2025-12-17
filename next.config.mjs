@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 静的HTMLエクスポートを有効化（最高のパフォーマンス）
-  output: 'export',
+  // output: 'export', // Disabled for API Routes support
 
   // 画像最適化設定（静的エクスポート用）
   images: {
