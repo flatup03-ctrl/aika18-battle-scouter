@@ -14,13 +14,13 @@ export default function AI18Page() {
     const [errorMsg, setErrorMsg] = useState('');
     const [progress, setProgress] = useState(0);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const [analysisType, setAnalysisType] = useState<'video' | 'image' | 'chat'>('video');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const initLiff = async () => {
             try {
                 const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2008276179-XxwM2QQD';
-
                 await liff.init({ liffId });
 
                 if (liff.isLoggedIn()) {
@@ -28,14 +28,10 @@ export default function AI18Page() {
                     setProfile(p);
                     setStatus('ready');
                 } else {
-                    // 開発環境、または外部ブラウザでの自動ログインを避ける
                     if (process.env.NODE_ENV === 'development') {
-                        console.warn('Dev Mode: Skipping LINE Login');
                         setProfile({ userId: 'DEV_USER_ID', displayName: 'Dev User' });
                         setStatus('ready');
                     } else {
-                        // ログインしていない場合のみログイン画面へ。
-                        // ただし、すでにURLにログイン処理用のパラメータ（codeなど）がある場合は待機
                         const urlParams = new URLSearchParams(window.location.search);
                         if (!urlParams.has('code')) {
                             liff.login({ redirectUri: window.location.href });
@@ -44,14 +40,8 @@ export default function AI18Page() {
                 }
             } catch (e: any) {
                 console.error('LIFF Init Error', e);
-                // Fallback for local testing if not in LIFF browser
-                if (process.env.NODE_ENV === 'development') {
-                    setProfile({ userId: 'dev_user', displayName: 'Developer' });
-                    setStatus('ready');
-                } else {
-                    setStatus('error');
-                    setErrorMsg('LIFF初期化に失敗しました: ' + e.message);
-                }
+                setErrorMsg(`LIFF初期化エラー: ${e.message}`);
+                setStatus('error');
             }
         };
         initLiff();
@@ -61,262 +51,210 @@ export default function AI18Page() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        console.log('Selected file:', file.name, file.type, file.size);
-        console.log('API Base URL:', API_BASE_URL);
-
-        if (file.size > 50 * 1024 * 1024) { // 50MB limit
-            alert('動画サイズが大きすぎます（50MB以下にしてください）');
-            return;
-        }
-
         setStatus('uploading');
         setProgress(10);
         setErrorMsg('');
 
         try {
             // 1. Get Presigned URL
-            console.log('Requesting upload URL...');
             const reqRes = await fetch(`${API_BASE_URL}/api/upload-request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileName: file.name, contentType: file.type })
+                body: JSON.stringify({
+                    fileName: file.name,
+                    contentType: file.type,
+                    analysisType // Pass what we're doing
+                })
             });
 
-            console.log('Upload Request Status:', reqRes.status);
-
-            if (!reqRes.ok) {
-                const errText = await reqRes.text();
-                console.error('Upload Request Error Body:', errText);
-                if (reqRes.status === 429) throw new Error('本日の利用枠が上限に達しました。');
-                throw new Error(`サーバー通信エラー: ${reqRes.status} ${reqRes.statusText}`);
-            }
-
+            if (!reqRes.ok) throw new Error(`アップロード準備失敗: ${reqRes.status}`);
             const { uploadUrl, fileKey } = await reqRes.json();
-            console.log('Got upload URL for key:', fileKey);
             setProgress(30);
 
-            // 2. Upload to R2
-            console.log('Uploading to R2...');
+            // 2. Upload
             const uploadRes = await fetch(uploadUrl, {
                 method: 'PUT',
                 body: file,
                 headers: { 'Content-Type': file.type }
             });
 
-            console.log('R2 Upload Status:', uploadRes.status);
-
-            if (!uploadRes.ok) {
-                const errText = await uploadRes.text().catch(() => 'No body');
-                console.error('R2 Error Body:', errText);
-                throw new Error(`動画アップロードに失敗しました (R2 Status: ${uploadRes.status})`);
-            }
+            if (!uploadRes.ok) throw new Error('ファイルの転送に失敗しました。');
             setProgress(70);
-
             setStatus('processing');
 
-            // 3. Trigger Analysis
-            console.log('Triggering analysis...');
+            // 3. Analyze
             const analyzeRes = await fetch(`${API_BASE_URL}/api/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     fileKey,
-                    userId: profile?.userId || 'GUEST_USER' // Fallback for debugging
+                    userId: profile?.userId || 'GUEST_USER',
+                    type: analysisType
                 })
             });
 
-            console.log('Analyze Request Status:', analyzeRes.status);
-
-            if (!analyzeRes.ok) {
-                const errText = await analyzeRes.text();
-                console.error('Analyze Error Body:', errText);
-                if (analyzeRes.status === 429) throw new Error('本日の利用枠が上限に達しました。');
-                throw new Error(`解析開始エラー: ${analyzeRes.status}`);
-            }
-
+            if (!analyzeRes.ok) throw new Error('解析中にエラーが発生しました。');
             const data = await analyzeRes.json();
             setAnalysisResult(data.result);
-
             setProgress(100);
             setStatus('complete');
 
         } catch (err: any) {
-            console.error('Full Error Object:', err);
-            setStatus('error');
+            console.error('Flow Error:', err);
             setErrorMsg(err.message || '予期せぬエラーが発生しました');
+            setStatus('error');
         }
     };
 
-    const triggerFileInput = () => {
-        fileInputRef.current?.click();
+    const triggerAction = (type: 'video' | 'image' | 'chat') => {
+        setAnalysisType(type);
+        if (type === 'chat') {
+            alert('チャット相談機能は近日公開予定のアップデートをお待ちください！今は動画・画像解析をお試しください。');
+            return;
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.accept = type === 'video' ? 'video/*' : 'image/*';
+            fileInputRef.current.click();
+        }
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden bg-[#0f172a] text-white font-sans">
-            {process.env.NODE_ENV === 'development' && (
-                <div className="absolute top-0 left-0 w-full bg-red-600 text-white text-xs font-bold text-center py-1 z-50">
-                    🚀 DEV MODE
-                </div>
-            )}
+        <div className="min-h-screen relative overflow-hidden bg-slate-950 text-white font-sans selection:bg-pink-500/30">
             {/* Background Effects */}
-            <div className="absolute top-[-20%] left-[-20%] w-[50%] h-[50%] rounded-full bg-purple-600 blur-[120px] opacity-30 animate-pulse"></div>
-            <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-blue-600 blur-[120px] opacity-30 animate-pulse delay-1000"></div>
+            <div className="fixed inset-0 pointer-events-none">
+                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-600 blur-[150px] opacity-20"></div>
+                <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-600 blur-[150px] opacity-10"></div>
+            </div>
 
             <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
-
-                <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+                <div className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden transition-all duration-500">
 
                     {/* Interior Glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-pink-500/20 blur-[60px] rounded-full pointer-events-none"></div>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-32 bg-pink-500/10 blur-[80px] rounded-full"></div>
 
-                    {/* Character Image */}
-                    <div className="mb-4 z-10">
+                    {/* Character Section */}
+                    <div className="mb-6 z-10 group">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-pink-500 to-indigo-500 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <Image
                             src="https://ik.imagekit.io/FLATUPGYM/b9d4a676-0903-444c-91d2-222dc3294f.png?updatedAt=1760340781490"
-                            alt="AI 18号 Character"
-                            width={150}
-                            height={150}
-                            className="rounded-full mx-auto shadow-lg border-2 border-purple-500"
-                            unoptimized={true} // Use unoptimized for external images without domain config
+                            alt="AI 18号"
+                            width={130}
+                            height={130}
+                            className="rounded-full relative border border-white/10 shadow-xl transition-transform duration-700 hover:scale-105"
+                            unoptimized
                         />
                     </div>
 
-                    <h1 className="text-4xl font-extrabold mb-2 tracking-tight bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm z-10">
+                    <h1 className="text-4xl font-black mb-1 bg-gradient-to-r from-white via-pink-100 to-indigo-200 bg-clip-text text-transparent italic tracking-tighter">
                         AI 18号
                     </h1>
-                    <p className="text-pink-100/70 mb-10 text-sm font-medium tracking-wide z-10">
-                        戦闘力分析から、ジム・ダイエット相談、そして恋愛・人生相談まで<br />どんな悩みもAI 18号がサポートします。
+                    <p className="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase mb-10 opacity-60">
+                        The Master Mind
                     </p>
 
                     {status === 'initializing' && (
-                        <div className="flex flex-col items-center space-y-3 z-10 text-pink-200/60 animate-pulse">
-                            <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-xs tracking-wider">SYSTEM INITIALIZING...</span>
+                        <div className="py-10 flex flex-col items-center space-y-4">
+                            <div className="w-8 h-8 border-2 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
+                            <span className="text-[10px] font-black text-pink-500 tracking-widest uppercase animate-pulse">Scanning System...</span>
                         </div>
                     )}
 
                     {status === 'ready' && (
-                        <div className="z-10 w-full animate-in fade-in zoom-in duration-500 space-y-4">
-
-                            {/* Pillar 1: Battle Power */}
-                            <div className="relative group cursor-pointer" onClick={triggerFileInput}>
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-500 group-hover:duration-200 opacity-60"></div>
-                                <button className="relative w-full px-6 py-4 bg-slate-900/90 rounded-lg leading-none flex flex-col items-start text-left hover:bg-slate-800/90 transition-colors border border-white/5">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                        <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
-                                        <h3 className="text-lg font-bold text-pink-400">戦闘力分析</h3>
+                        <div className="w-full space-y-4 animate-in fade-in zoom-in duration-500">
+                            {[
+                                { id: 'video', label: '戦闘力分析', desc: '格闘技の分析データを取得', glow: 'from-pink-500 to-purple-600', dot: 'bg-pink-500' },
+                                { id: 'image', label: 'カロリー計算', desc: '食事内容からエネルギーを算出', glow: 'from-cyan-500 to-blue-600', dot: 'bg-cyan-400' },
+                                { id: 'chat', label: 'お悩み相談', desc: '戦略的カウンセリングと対話', glow: 'from-emerald-500 to-teal-600', dot: 'bg-emerald-400' },
+                            ].map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => triggerAction(item.id as any)}
+                                    className="relative w-full p-[1px] rounded-2xl group transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
+                                >
+                                    <div className={`absolute inset-0 bg-gradient-to-r ${item.glow} rounded-2xl opacity-10 group-hover:opacity-40 transition-opacity blur-sm`}></div>
+                                    <div className="relative bg-slate-900/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 flex flex-col items-start text-left">
+                                        <div className="flex items-center space-x-2 mb-1">
+                                            <span className={`w-1.5 h-1.5 rounded-full ${item.dot} shadow-[0_0_10px_rgba(255,255,255,0.4)]`}></span>
+                                            <h3 className="font-bold text-lg text-slate-100">{item.label}</h3>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium opacity-80">{item.desc}</p>
                                     </div>
-                                    <p className="text-xs text-slate-300">格闘技の動画をアップロードして戦闘力を測定</p>
                                 </button>
-                            </div>
-
-                            {/* Pillar 2: Calorie Calculation */}
-                            <div className="relative group cursor-pointer" onClick={() => alert('画像解析機能は現在準備中です。')}>
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500 group-hover:duration-200 opacity-30"></div>
-                                <button className="relative w-full px-6 py-4 bg-slate-900/90 rounded-lg leading-none flex flex-col items-start text-left hover:bg-slate-800/90 transition-colors border border-white/5">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                        <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-                                        <h3 className="text-lg font-bold text-cyan-400">カロリー計算</h3>
-                                    </div>
-                                    <p className="text-xs text-slate-300">食事の画像をアップロードしてカロリーを計算</p>
-                                </button>
-                            </div>
-
-                            {/* Pillar 3: Counseling */}
-                            <div className="relative group cursor-pointer" onClick={() => alert('お悩み相談機能は現在準備中です。')}>
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500 group-hover:duration-200 opacity-30"></div>
-                                <button className="relative w-full px-6 py-4 bg-slate-900/90 rounded-lg leading-none flex flex-col items-start text-left hover:bg-slate-800/90 transition-colors border border-white/5">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                                        <h3 className="text-lg font-bold text-emerald-400">お悩み相談</h3>
-                                    </div>
-                                    <p className="text-xs text-slate-300">テキストであなたの悩みや話を聞きます</p>
-                                </button>
-                            </div>
-
+                            ))}
                         </div>
                     )}
 
                     {status === 'uploading' && (
-                        <div className="w-full z-10 py-4">
-                            <p className="mb-3 text-pink-300 text-sm font-bold tracking-widest animate-pulse flex justify-between">
-                                <span>UPLOADING</span>
-                                <span>{progress}%</span>
-                            </p>
-                            <div className="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-gradient-to-r from-pink-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(236,72,153,0.5)]" style={{ width: `${progress}%` }}></div>
+                        <div className="w-full py-8 text-left space-y-4">
+                            <div className="flex justify-between items-end">
+                                <span className="text-[10px] font-black text-pink-500 tracking-widest uppercase">Uploading Data</span>
+                                <span className="text-3xl font-black text-white italic">{progress}%</span>
+                            </div>
+                            <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-pink-500 to-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }}></div>
                             </div>
                         </div>
                     )}
 
                     {status === 'processing' && (
-                        <div className="flex flex-col items-center z-10 py-6">
-                            <div className="relative w-16 h-16 mb-6">
-                                <div className="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
-                                <div className="absolute inset-0 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                                <div className="absolute inset-4 bg-pink-500 rounded-full animate-ping opacity-20"></div>
+                        <div className="py-12 flex flex-col items-center">
+                            <div className="relative w-20 h-20 mb-6">
+                                <div className="absolute inset-0 border-2 border-pink-500/20 rounded-full animate-ping"></div>
+                                <div className="absolute inset-0 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
-                            <p className="text-lg font-bold text-white tracking-widest">ANALYZING</p>
-                            <p className="text-pink-200/50 text-xs mt-2">AIが映像を解析しています...</p>
+                            <h2 className="text-xl font-black tracking-[0.2em] text-white italic uppercase">Analyzing</h2>
+                            <p className="text-[10px] text-slate-500 mt-2 font-bold">データを高次元スキャンしています</p>
                         </div>
                     )}
 
                     {status === 'complete' && (
-                        <div className="bg-gradient-to-b from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 w-full z-10 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                            <h3 className="text-xl font-bold text-emerald-300 mb-2 tracking-wide">{analysisResult?.summary || 'REQUEST ACCEPTED'}</h3>
-                            <div className="text-sm text-emerald-100/90 leading-relaxed mb-6 bg-emerald-900/40 p-4 rounded-xl border border-emerald-500/20 text-left">
-                                {analysisResult?.details ? (
-                                    <p className="whitespace-pre-wrap">{analysisResult.details}</p>
-                                ) : (
-                                    <p>解析リクエストを受け付けました。<br />完了次第、LINE通知をお送りします。</p>
-                                )}
+                        <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                            <div className="bg-emerald-500/20 border border-emerald-500/30 p-8 rounded-[2.5rem] relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+                                    <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg>
+                                </div>
+                                <h3 className="text-2xl font-black text-emerald-400 italic mb-4 uppercase tracking-tighter">Results</h3>
+                                <p className="text-sm text-emerald-100 leading-relaxed font-medium">
+                                    {analysisResult?.details || '素晴らしい成果を検知しました。解析を終了します。'}
+                                </p>
                             </div>
                             <button
-                                onClick={() => liff.closeWindow()}
-                                className="text-xs font-bold text-white bg-emerald-600/80 hover:bg-emerald-500 px-6 py-2 rounded-full transition-colors"
+                                onClick={() => setStatus('ready')}
+                                className="w-full py-4 bg-white text-slate-950 font-black rounded-2xl hover:bg-pink-100 transition-colors shadow-2xl active:scale-95"
                             >
-                                閉じる
+                                BACK TO MENU
                             </button>
                         </div>
                     )}
 
                     {status === 'error' && (
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 w-full z-10 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <div className="w-full py-8 space-y-6">
+                            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto border border-red-500/30">
+                                <span className="text-3xl font-black text-red-500 italic">!</span>
                             </div>
-                            <h3 className="text-lg font-bold text-red-400 mb-2">ERROR</h3>
-                            <p className="text-sm text-red-200/70 mb-6 font-mono bg-black/20 p-2 rounded text-left overflow-x-auto whitespace-nowrap">
-                                {errorMsg}
-                            </p>
+                            <div className="space-y-3">
+                                <h3 className="text-lg font-black text-red-400 uppercase tracking-widest">Error Occurred</h3>
+                                <p className="text-[10px] text-slate-500 max-h-24 overflow-y-auto bg-black/40 p-4 rounded-xl font-mono leading-relaxed border border-white/5">
+                                    {errorMsg}
+                                </p>
+                            </div>
                             <button
                                 onClick={() => setStatus('ready')}
-                                className="px-6 py-2 bg-red-500/80 hover:bg-red-500 rounded-full text-sm font-bold text-white transition-colors"
+                                className="px-12 py-3 bg-red-600 text-white font-black rounded-full hover:bg-red-500 transition-all hover:scale-105 active:scale-95"
                             >
-                                RETRY
+                                SYSTEM REBOOT
                             </button>
                         </div>
                     )}
 
-                    <input
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                    />
-
+                    <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
                 </div>
 
-                <div className="mt-8 flex items-center space-x-2 text-[10px] text-pink-200/20 font-mono tracking-widest uppercase">
-                    <span>AI Analysis Core v2.0</span>
+                <div className="mt-10 flex items-center space-x-3 text-[9px] text-slate-700 font-black tracking-[0.4em] uppercase">
+                    <span>AI18 OS ver 2.0.4</span>
                     <span className="w-1 h-1 bg-pink-500 rounded-full"></span>
-                    <span>Gemini Pro Vision</span>
+                    <span>Gemini Core</span>
                 </div>
-
             </main>
         </div>
     );
