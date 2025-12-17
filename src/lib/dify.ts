@@ -1,6 +1,6 @@
 
 // Dify API Client
-const DIFY_API_KEY = process.env.DIFY_API_KEY;
+const DIFY_API_KEY = process.env.DIFY_API_KEY || 'app-wgsX1tHoe5SQZkIkmlYB5ED7';
 const DIFY_API_URL = process.env.DIFY_API_URL || 'https://api.dify.ai/v1';
 
 export async function sendToDify(
