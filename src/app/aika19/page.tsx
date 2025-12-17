@@ -13,6 +13,7 @@ export default function AI18Page() {
     const [profile, setProfile] = useState<any>(null);
     const [errorMsg, setErrorMsg] = useState('');
     const [progress, setProgress] = useState(0);
+    const [analysisResult, setAnalysisResult] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -132,6 +133,9 @@ export default function AI18Page() {
                 if (analyzeRes.status === 429) throw new Error('本日の利用枠が上限に達しました。');
                 throw new Error(`解析開始エラー: ${analyzeRes.status}`);
             }
+
+            const data = await analyzeRes.json();
+            setAnalysisResult(data.result);
 
             setProgress(100);
             setStatus('complete');
@@ -262,11 +266,14 @@ export default function AI18Page() {
                             <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
                             </div>
-                            <h3 className="text-xl font-bold text-emerald-300 mb-2 tracking-wide">REQUEST ACCEPTED</h3>
-                            <p className="text-sm text-emerald-100/70 leading-relaxed mb-6">
-                                解析リクエストを受け付けました。<br />
-                                完了次第、LINE通知をお送りします。
-                            </p>
+                            <h3 className="text-xl font-bold text-emerald-300 mb-2 tracking-wide">{analysisResult?.summary || 'REQUEST ACCEPTED'}</h3>
+                            <div className="text-sm text-emerald-100/90 leading-relaxed mb-6 bg-emerald-900/40 p-4 rounded-xl border border-emerald-500/20 text-left">
+                                {analysisResult?.details ? (
+                                    <p className="whitespace-pre-wrap">{analysisResult.details}</p>
+                                ) : (
+                                    <p>解析リクエストを受け付けました。<br />完了次第、LINE通知をお送りします。</p>
+                                )}
+                            </div>
                             <button
                                 onClick={() => liff.closeWindow()}
                                 className="text-xs font-bold text-white bg-emerald-600/80 hover:bg-emerald-500 px-6 py-2 rounded-full transition-colors"
