@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import liff from '@line/liff';
+import Image from "next/image";
 
 // Configuration
 // In production, this should be an environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
-export default function AIKA19Page() {
+export default function AI18Page() {
     const [status, setStatus] = useState<'initializing' | 'ready' | 'uploading' | 'processing' | 'complete' | 'error'>('initializing');
     const [profile, setProfile] = useState<any>(null);
     const [errorMsg, setErrorMsg] = useState('');
@@ -150,7 +151,7 @@ export default function AIKA19Page() {
         <div className="min-h-screen relative overflow-hidden bg-[#0f172a] text-white font-sans">
             {process.env.NODE_ENV === 'development' && (
                 <div className="absolute top-0 left-0 w-full bg-red-600 text-white text-xs font-bold text-center py-1 z-50">
-                    🚀 DEV MODE: NEW ARCHITECTURE (Cloudflare R2 + Gemini)
+                    🚀 DEV MODE
                 </div>
             )}
             {/* Background Effects */}
@@ -164,37 +165,71 @@ export default function AIKA19Page() {
                     {/* Interior Glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-pink-500/20 blur-[60px] rounded-full pointer-events-none"></div>
 
-                    <h1 className="text-4xl font-extrabold mb-2 tracking-tight bg-gradient-to-br from-white via-pink-200 to-pink-500 bg-clip-text text-transparent drop-shadow-sm z-10">
-                        AIKA 19
+                    {/* Character Image */}
+                    <div className="mb-4 z-10">
+                        <Image
+                            src="https://ik.imagekit.io/FLATUPGYM/b9d4a676-0903-444c-91d2-222dc3294f.png?updatedAt=1760340781490"
+                            alt="AI 18号 Character"
+                            width={150}
+                            height={150}
+                            className="rounded-full mx-auto shadow-lg border-2 border-purple-500"
+                            unoptimized={true} // Use unoptimized for external images without domain config
+                        />
+                    </div>
+
+                    <h1 className="text-4xl font-extrabold mb-2 tracking-tight bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm z-10">
+                        AI 18号
                     </h1>
                     <p className="text-pink-100/70 mb-10 text-sm font-medium tracking-wide z-10">
-                        次世代AI格闘技フォーム解析
+                        戦闘力分析から、ジム・ダイエット相談、そして恋愛・人生相談まで<br />どんな悩みもAI 18号がサポートします。
                     </p>
 
                     {status === 'initializing' && (
                         <div className="flex flex-col items-center space-y-3 z-10 text-pink-200/60 animate-pulse">
-                            <div className="w-5 h-5 border-2 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-xs tracking-wider">SYSTEM INITIALIZING...</span>
                         </div>
                     )}
 
                     {status === 'ready' && (
-                        <div className="z-10 w-full animate-in fade-in zoom-in duration-500">
-                            <div className="mb-8 relative group cursor-pointer" onClick={triggerFileInput}>
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-full blur opacity-60 group-hover:opacity-100 transition duration-500 group-hover:duration-200 animate-tilt"></div>
-                                <button
-                                    className="relative w-full px-8 py-5 bg-slate-900 rounded-full leading-none flex items-center justify-center space-x-3 transition-transform active:scale-95 group-hover:bg-slate-800"
-                                >
-                                    <svg className="w-6 h-6 text-pink-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                                    <span className="text-white font-bold tracking-wide">動画を選択して解析</span>
+                        <div className="z-10 w-full animate-in fade-in zoom-in duration-500 space-y-4">
+
+                            {/* Pillar 1: Battle Power */}
+                            <div className="relative group cursor-pointer" onClick={triggerFileInput}>
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-500 group-hover:duration-200 opacity-60"></div>
+                                <button className="relative w-full px-6 py-4 bg-slate-900/90 rounded-lg leading-none flex flex-col items-start text-left hover:bg-slate-800/90 transition-colors border border-white/5">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                        <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+                                        <h3 className="text-lg font-bold text-pink-400">戦闘力分析</h3>
+                                    </div>
+                                    <p className="text-xs text-slate-300">格闘技の動画をアップロードして戦闘力を測定</p>
                                 </button>
                             </div>
-                            <div className="px-4 py-3 bg-white/5 rounded-xl border border-white/5 backdrop-blur-sm">
-                                <p className="text-[10px] text-gray-400 leading-relaxed text-left">
-                                    <span className="text-pink-400 font-bold mr-1">NOTE:</span>
-                                    1分以内の動画フォームをアップロードしてください。解析結果はLINEで自動通知されます。
-                                </p>
+
+                            {/* Pillar 2: Calorie Calculation */}
+                            <div className="relative group cursor-pointer" onClick={() => alert('画像解析機能は現在準備中です。')}>
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500 group-hover:duration-200 opacity-30"></div>
+                                <button className="relative w-full px-6 py-4 bg-slate-900/90 rounded-lg leading-none flex flex-col items-start text-left hover:bg-slate-800/90 transition-colors border border-white/5">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                        <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                        <h3 className="text-lg font-bold text-cyan-400">カロリー計算</h3>
+                                    </div>
+                                    <p className="text-xs text-slate-300">食事の画像をアップロードしてカロリーを計算</p>
+                                </button>
                             </div>
+
+                            {/* Pillar 3: Counseling */}
+                            <div className="relative group cursor-pointer" onClick={() => alert('お悩み相談機能は現在準備中です。')}>
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500 group-hover:duration-200 opacity-30"></div>
+                                <button className="relative w-full px-6 py-4 bg-slate-900/90 rounded-lg leading-none flex flex-col items-start text-left hover:bg-slate-800/90 transition-colors border border-white/5">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                        <h3 className="text-lg font-bold text-emerald-400">お悩み相談</h3>
+                                    </div>
+                                    <p className="text-xs text-slate-300">テキストであなたの悩みや話を聞きます</p>
+                                </button>
+                            </div>
+
                         </div>
                     )}
 
