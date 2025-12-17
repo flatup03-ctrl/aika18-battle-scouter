@@ -6,7 +6,7 @@ import Image from "next/image";
 
 // Configuration
 // In production, this should be an environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function AI18Page() {
     const [status, setStatus] = useState<'initializing' | 'ready' | 'uploading' | 'processing' | 'complete' | 'error'>('initializing');
