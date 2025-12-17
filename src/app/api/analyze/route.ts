@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { analyzeMedia } from '@/lib/gemini';
 import { sendToDify } from '@/lib/dify';
+import { sendToDify }
+ from '@/lib/dify';
 
 export async function POST(request: Request) {
     try {
