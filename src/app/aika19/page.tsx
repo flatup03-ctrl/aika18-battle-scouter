@@ -16,8 +16,8 @@ export default function AI18Page() {
     const [analysisType, setAnalysisType] = useState<'video' | 'image' | 'chat'>('video');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // mascot image placeholder - ideally user uploads the generated image to ImageKit
-    const MASCOT_URL = "https://ik.imagekit.io/FLATUPGYM/b9d4a676-0903-444c-91d2-222dc3294f.png?updatedAt=1760340781490";
+    // AI 18 Character Image
+    const MASCOT_URL = "https://ik.imagekit.io/FLATUPGYM/TOPTOP.png?updatedAt=1756897198425";
 
     useEffect(() => {
         const initLiff = async () => {
@@ -130,22 +130,23 @@ export default function AI18Page() {
             </div>
 
             <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
-                <div className="w-full max-w-md bg-white/90 backdrop-blur-xl border-4 border-white rounded-[4rem] p-10 shadow-[0_25px_60px_rgba(0,0,0,0.05)] flex flex-col items-center text-center relative overflow-hidden transition-all duration-700">
+                <div className="w-full max-w-md bg-white border-[6px] border-[#F8FAFC] rounded-[4.5rem] p-10 shadow-[0_30px_70px_rgba(0,0,0,0.03)] flex flex-col items-center text-center relative overflow-hidden transition-all duration-700">
 
                     {/* Interior Glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-32 bg-pink-50/50 blur-[60px] rounded-full"></div>
 
                     {/* Mascot Section */}
-                    <div className="mb-6 z-10 transition-transform duration-700 hover:scale-105 cursor-pointer">
-                        <div className="absolute inset-0 bg-pink-200/20 rounded-full blur-2xl opacity-50"></div>
-                        <Image
-                            src={MASCOT_URL}
-                            alt="AI 18号 Mascot"
-                            width={160}
-                            height={160}
-                            className="rounded-full relative border-[8px] border-white shadow-xl"
-                            unoptimized
-                        />
+                    <div className="mb-8 z-10 transition-transform duration-700 hover:scale-105 cursor-pointer">
+                        <div className="absolute inset-0 bg-pink-100/30 rounded-full blur-3xl opacity-50"></div>
+                        <div className="relative w-40 h-40 rounded-full border-[6px] border-[#F1F5F9] shadow-inner overflow-hidden flex items-center justify-center bg-white">
+                            <Image
+                                src={MASCOT_URL}
+                                alt="AI 18号 Mascot"
+                                fill
+                                className="object-cover"
+                                unoptimized
+                            />
+                        </div>
                     </div>
 
                     <div className="z-10 relative">
