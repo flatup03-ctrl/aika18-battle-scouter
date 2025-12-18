@@ -48,48 +48,40 @@ async function handleMessageEvent(event: any) {
     if (message.type !== 'image' && message.type !== 'video') {
         if (message.type === 'text') {
             const userMsg = message.text;
-            await logToSheet({
+            logToSheet({
                 userId,
                 type: 'Text (LINE)',
                 userContent: userMsg,
                 aiResponse: 'N/A (Standard Guide)'
-            });
+            }).catch(err => console.error('Text Logging Error:', err));
             await replyMessage(replyToken, "画像か動画を送ってくれたら、AI 18号が解析しちゃうよ！🥊🥗\n今は格闘技のフォームや、食事の写真を待ってるね♪");
         }
         return;
     }
 
     try {
+        // Determine media type
+        const type = message.type === 'image' ? 'image' : 'video';
+
         // 3. Download Media Content from LINE
         const mediaBuffer = await downloadLineContent(message.id);
         const base64Data = mediaBuffer.toString('base64');
         const mimeType = message.type === 'image' ? 'image/jpeg' : 'video/mp4';
 
-        // 4. Determine Analysis Type (Simple heuristic: image=food, video=combat)
-        const type = message.type === 'image' ? 'image' : 'video';
-        const prompt = type === 'image'
-            ? "管理栄養士として、この食事画像を見て、推定カロリーとアドバイスを優しく簡潔に述べてください。"
-            : "格闘技トレーナーとして、動画の動きに対するワンポイントアドバイスを専門的かつフレンドリーに伝えてください。";
-        const userContext = type === 'image' ? "食事管理中" : "格闘技上達を目指すユーザー";
+        // 4. One-Shot Persona & Analysis for LINE (Ultra Fast)
+        const taskLabel = message.type === 'image' ? 'お食事' : 'トレーニング';
+        const personaPrompt = `
+あなたは「AI 18号」という、親しみやすく元気な性格の専門家（トレーナー/栄養士）です。LINEのトーク画面で返信しています。
+ユーザーが送ってくれた${taskLabel}のメディアを解析し、以下のルールで回答してください：
+1. 最初に必ず明るく褒めること。
+2. 専門的なアドバイス（${type === 'image' ? '栄養・カロリー' : '格闘技の動き'}）を1つだけ、具体的かつ短く伝えること。
+3. 最後にやる気が出る一言を添えること。
+4. 全体で100〜150文字程度の親しみやすい口調にすること。
+        `.trim();
 
-        // 5. ACTUAL Gemini Analysis
-        const geminiAnalysis = await analyzeMedia(mimeType, base64Data, prompt);
-
-        // 6. Persona Transformation via Dify
-        const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
-        const difyResponse = await sendToDify(
-            {
-                analysis_result: geminiAnalysis,
-                user_context: userContext,
-                task_type: type
-            },
-            userId,
-            `あなたは「AI 18号」です。LINEのトーク画面で返信しています。
-ユーザーが送ってくれた${taskLabel}を解析しました。褒めつつ、短く心に響くアドバイスを1つ送ってください。
-解析結果: ${geminiAnalysis}`
-        );
-
-        const answer = difyResponse.answer || difyResponse.message || geminiAnalysis;
+        console.log(`[LINE] Starting Single-Step Gemini Analysis for ${mimeType}...`);
+        const answer = await analyzeMedia(mimeType, base64Data, personaPrompt);
+        console.log(`[LINE] Analysis Complete`);
 
         // 7. Log to Google Sheets (Non-blocking)
         logToSheet({

@@ -44,12 +44,12 @@ export async function POST(request: Request) {
                 raw_analysis: userText
             };
 
-            await logToSheet({
+            logToSheet({
                 userId,
                 type: 'Chat (UI)',
                 userContent: userText,
                 aiResponse: result.details
-            });
+            }).catch(err => console.error('Chat Logging Error:', err));
 
             return NextResponse.json({ success: true, result });
         }
