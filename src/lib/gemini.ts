@@ -17,8 +17,11 @@ const genAI = new GoogleGenerativeAI(apiKey);
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
     try {
-        // Use Gemini 1.5 Flash for speed and cost efficiency suitable for video
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Explicitly use 'v1' to avoid 404s common with older SDK defaults or specific regions
+        const model = genAI.getGenerativeModel(
+            { model: "gemini-1.5-flash" },
+            { apiVersion: "v1" }
+        );
 
         const result = await model.generateContent([
             prompt,
