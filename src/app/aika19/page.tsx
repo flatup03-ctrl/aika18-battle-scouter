@@ -259,7 +259,7 @@ export default function AI18Page() {
                     {status === 'ready' && (
                         <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-5 duration-700">
                             {[
-                                { id: 'video', label: '戦闘力分析', desc: '格闘フォームをチェック！', icon: '🥊', bg: 'bg-[#B0E0E6]/90', text: 'text-[#4682B4]' },
+                                { id: 'video', label: '戦闘力分析', desc: '10秒以内の動画でチェック！', icon: '🥊', bg: 'bg-[#B0E0E6]/90', text: 'text-[#4682B4]' },
                                 { id: 'image', label: 'カロリー計算', desc: '今日のごはんは何かな？', icon: '🥗', bg: 'bg-[#C8F0C8]/90', text: 'text-[#2E8B57]' },
                                 { id: 'chat', label: 'お悩み相談', desc: 'なんでもはなしてね♪', icon: '🌸', bg: 'bg-[#FFD1DC]/90', text: 'text-[#DB7093]' },
                             ].map((item) => (
@@ -359,7 +359,7 @@ export default function AI18Page() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.0.9 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.1.0 Optimized</p>
                             </div>
                         </div>
                     )}
