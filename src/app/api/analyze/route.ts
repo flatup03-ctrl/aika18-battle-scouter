@@ -8,10 +8,14 @@ import { logToSheet } from '@/lib/sheets';
  * This route handles real-time media analysis using Gemini 1.5 Flash.
  */
 
+export const maxDuration = 300; // 5 minute timeout for App Router
+
 export async function POST(request: Request) {
     try {
+        console.log("--- Start Analyze Request ---");
         // Parse the incoming multipart form data (real implementation)
         const formData = await request.formData();
+        console.log("Form data parsed");
         const type = formData.get('type') as string || 'video';
         const userId = formData.get('userId') as string || 'GUEST';
 
@@ -70,9 +74,12 @@ export async function POST(request: Request) {
         }
 
         // 3. ACTUAL Gemini Analysis
+        console.log(`Starting Gemini Analysis for ${file.type}...`);
         const geminiAnalysis = await analyzeMedia(file.type, base64Data, prompt);
+        console.log("Gemini Analysis Complete");
 
         // 4. Persona Transformation via Dify
+        console.log("Starting Dify Transformation...");
         const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
         const difyResponse = await sendToDify(
             {
@@ -85,6 +92,7 @@ export async function POST(request: Request) {
 ユーザーが送ってくれた${taskLabel}の解析結果をもとに、褒めつつも役に立つアドバイスを1つ伝えてください。
 解析内容: ${geminiAnalysis}`
         );
+        console.log("Dify Transformation Complete");
 
         const result = {
             summary: systemSummary,
@@ -113,10 +121,10 @@ export async function POST(request: Request) {
         });
 
         // Handle specific fetch errors (like timeouts or payload too large)
-        if (error.message?.includes('fetch') || error.message?.includes('timeout')) {
+        if (error.message?.includes('fetch') || error.message?.includes('timeout') || error.message?.includes('AbortError')) {
             return NextResponse.json({
-                error: '解析サーバーとの通信がタイムアウトしました。動画が長すぎるか、ファイルサイズが大きすぎる可能性があります。少し短めにするか、リトライしてみてね♪'
-            }, { status: 502 });
+                error: '🚨 通信がタイムアウトしました。動画が長すぎる（目安15秒以内）か、ネット環境が不安定かもしれません。少し短くして再チャレンジしてみてね♪'
+            }, { status: 504 });
         }
 
         return NextResponse.json(

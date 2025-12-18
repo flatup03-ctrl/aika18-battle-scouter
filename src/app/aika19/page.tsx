@@ -357,8 +357,9 @@ export default function AI18Page() {
                                     onClick={handleReset}
                                     className="w-full py-5 bg-[#FF8DA1] text-white font-black rounded-[2.2rem] hover:bg-[#FF7A91] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
                                 >
-                                    {errorMsg.includes('準備中') ? "わかった！楽しみにしてるね！" : "🏠 メニューに戻る"}
+                                    🏠 メニューに戻る
                                 </button>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.0.5 Optimized</p>
                             </div>
                         </div>
                     )}
