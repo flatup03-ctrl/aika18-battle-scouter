@@ -91,13 +91,13 @@ async function handleMessageEvent(event: any) {
 
         const answer = difyResponse.answer || difyResponse.message || geminiAnalysis;
 
-        // 7. Log to Google Sheets
-        await logToSheet({
+        // 7. Log to Google Sheets (Non-blocking)
+        logToSheet({
             userId,
             type: `${type} (LINE)`,
             userContent: `MediaID: ${message.id}`,
             aiResponse: answer
-        });
+        }).catch(err => console.error('Webhook Logging Error:', err));
 
         // 8. Reply to LINE
         await replyMessage(replyToken, answer);

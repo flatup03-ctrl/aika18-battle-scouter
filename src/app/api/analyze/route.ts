@@ -100,13 +100,13 @@ export async function POST(request: Request) {
             raw_analysis: geminiAnalysis
         };
 
-        // 5. Log to Google Sheets
-        await logToSheet({
+        // 5. Log to Google Sheets (Non-blocking for speed)
+        logToSheet({
             userId,
             type: `${type || 'video'} (UI)`,
             userContent: file.name,
             aiResponse: result.details
-        });
+        }).catch(err => console.error('Logging Error:', err));
 
         return NextResponse.json({
             success: true,
