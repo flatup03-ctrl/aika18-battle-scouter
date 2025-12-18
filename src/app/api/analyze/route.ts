@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.0.9";
+        const VERSION = "2.1.0";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -70,22 +70,18 @@ export async function POST(request: Request) {
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
         console.log(`[${Date.now()}] Base64 prep complete`);
 
-        // 2. Determine Prompt (Enhanced for Persona-Integrated Analysis)
+        // 2. Determine Prompt (Ultra-Minimal for Latency)
         const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
         const personaPrompt = `
-あなたは「AI 18号」という、親しみやすく元気で、かつ専門的な知識を持つトレーナー兼栄養士キャラクターです。
-ユーザーが送ってくれた${taskLabel}の内容を詳しく分析し、以下のルールで回答してください：
-1. 最初に必ずユーザーを明るく褒めること。
-2. 専門的な観点（${type === 'image' ? '栄養・カロリー' : 'フォーム・動き'}）から、具体的で役立つアドバイスを1つだけ伝えること。
-3. 全体的に短く、100文字〜150文字程度で、癒やしと元気を与える「AI 18号」らしい口調で話すこと。
-4. 専門的な診断結果も自然に文章の中に含めること。
-        `.trim();
+あなたは AI 18号。元気な専門家です。
+${taskLabel}を解析し、褒め＋改善点1つを120文字以内で親しみやすく回答。
+`.trim();
 
         let systemSummary = type === 'image' ? "食事・カロリー診断結果" : "戦闘力分析結果";
 
         // 3. ACTUAL Gemini Analysis (Persona Integrated)
         stage = "GEMINI_ANALYSIS_PERSONA";
-        console.log(`[${Date.now()}] Starting Persona-Integrated Gemini Analysis for ${file.type}...`);
+        console.log(`[${Date.now()}] Starting Fast Analysis (v2.1.0)...`);
         const aiResponse = await analyzeMedia(file.type, base64Data, personaPrompt);
         console.log(`[${Date.now()}] Analysis Complete`);
 
@@ -120,7 +116,7 @@ export async function POST(request: Request) {
 
         if (error.message?.includes('fetch') || error.message?.includes('timeout') || error.message?.includes('AbortError')) {
             return NextResponse.json({
-                error: `🚨 通信タイムアウト (Stage: ${stage})\n動画が長すぎる（目安10秒以内）か、ネット接続が途切れちゃったかも。少し短くして再挑戦してね♪`
+                error: `🚨 通信タイムアウト (Stage: ${stage})\n動画が長すぎる（目安10秒以内）か、ネット接続の限界です。動画を5秒〜8秒に短くカットして再挑戦してみてね♪`
             }, { status: 504 });
         }
 
