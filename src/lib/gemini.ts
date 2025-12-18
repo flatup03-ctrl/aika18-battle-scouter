@@ -17,11 +17,8 @@ const genAI = new GoogleGenerativeAI(apiKey);
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
     try {
-        // Explicitly use 'v1' to avoid 404s common with older SDK defaults or specific regions
-        const model = genAI.getGenerativeModel(
-            { model: "gemini-1.5-flash" },
-            { apiVersion: "v1" }
-        );
+        // Let the SDK decide the best endpoint (v1/v1beta) to avoid 404 errors
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const result = await model.generateContent([
             prompt,
