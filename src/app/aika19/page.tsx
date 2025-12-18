@@ -14,7 +14,16 @@ export default function AI18Page() {
     const [progress, setProgress] = useState(0);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [analysisType, setAnalysisType] = useState<'video' | 'image' | 'chat'>('video');
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleReset = () => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        setAnalysisResult(null);
+        setStatus('ready');
+        setErrorMsg('');
+    };
 
     const BG_IMAGE_URL = "https://ik.imagekit.io/FLATUPGYM/TOPTOP.png?updatedAt=1756897198425";
 
@@ -56,6 +65,10 @@ export default function AI18Page() {
         setProgress(20);
         setErrorMsg('');
 
+        // Generate preview
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+
         try {
             // Use absolute path for reliability
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -75,7 +88,6 @@ export default function AI18Page() {
             const analyzeRes = await fetch(analyzeUrl, {
                 method: 'POST',
                 body: formData,
-                // Do NOT set Content-Type header when using FormData, browser does it with boundary
             });
 
             clearInterval(interval);
@@ -94,6 +106,9 @@ export default function AI18Page() {
             console.error('Flow Error:', err);
             setErrorMsg(err.message || '通信エラーが発生しました。インターネット接続を確認してね♪');
             setStatus('error');
+        } finally {
+            // Clean up the object URL after some time or on next select
+            // For now, we keep it for the result view if we want to show it there too
         }
     };
 
@@ -125,7 +140,7 @@ export default function AI18Page() {
             </div>
 
             <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
-                <div className="w-full max-w-md bg-white/70 backdrop-blur-2xl border-[6px] border-white/80 rounded-[4.5rem] p-10 shadow-[0_40px_100px_rgba(0,0,0,0.08)] flex flex-col items-center text-center relative overflow-hidden transition-all duration-700">
+                <div className="w-full max-w-md md:max-w-lg bg-white/70 backdrop-blur-2xl border-[6px] border-white/80 rounded-[3.5rem] md:rounded-[4.5rem] p-8 md:p-10 shadow-[0_40px_100px_rgba(0,0,0,0.08)] flex flex-col items-center text-center relative overflow-hidden transition-all duration-700">
 
                     {/* Header Decoration */}
                     <div className="mb-6 flex space-x-2 opacity-30">
@@ -183,13 +198,25 @@ export default function AI18Page() {
                     )}
 
                     {status === 'uploading' && (
-                        <div className="w-full py-8 space-y-5">
-                            <div className="flex justify-between items-end mb-2 px-2">
-                                <span className="text-xs font-black text-[#FF8DA1] tracking-widest uppercase">情報をとどけ中...</span>
-                                <span className="text-3xl font-black text-[#FF8DA1] italic">{progress}%</span>
-                            </div>
-                            <div className="h-5 w-full bg-[#F1F5F9] rounded-full overflow-hidden border-2 border-white shadow-inner">
-                                <div className="h-full bg-gradient-to-r from-[#FFB6C1] to-[#FF8DA1] transition-all duration-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                        <div className="w-full py-4 space-y-5 flex flex-col items-center">
+                            {previewUrl && (
+                                <div className="w-full h-48 relative rounded-2xl overflow-hidden shadow-inner bg-black/5 flex items-center justify-center">
+                                    {analysisType === 'video' ? (
+                                        <video src={previewUrl} className="w-full h-full object-cover" muted playsInline />
+                                    ) : (
+                                        <img src={previewUrl} className="w-full h-full object-cover" alt="preview" />
+                                    )}
+                                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]"></div>
+                                </div>
+                            )}
+                            <div className="w-full px-2">
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="text-xs font-black text-[#FF8DA1] tracking-widest uppercase">情報をとどけ中...</span>
+                                    <span className="text-3xl font-black text-[#FF8DA1] italic">{progress}%</span>
+                                </div>
+                                <div className="h-5 w-full bg-[#F1F5F9] rounded-full overflow-hidden border-2 border-white shadow-inner">
+                                    <div className="h-full bg-gradient-to-r from-[#FFB6C1] to-[#FF8DA1] transition-all duration-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                </div>
                             </div>
                             <p className="text-[10px] font-bold text-[#94A3B8]">わくわくして待っててね♪</p>
                         </div>
@@ -220,10 +247,10 @@ export default function AI18Page() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setStatus('ready')}
-                                className="w-full py-5 bg-[#FFD1DC] text-[#DB7093] font-black rounded-[2.5rem] hover:bg-[#FFB6C1] hover:text-white transition-all shadow-lg active:scale-95"
+                                onClick={handleReset}
+                                className="w-full py-5 bg-[#FFD1DC] text-[#DB7093] font-black rounded-[2.5rem] hover:bg-[#FFB6C1] hover:text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
                             >
-                                もっとあそぶ？
+                                <span>🏠</span> メニューに戻る
                             </button>
                         </div>
                     )}
@@ -241,10 +268,10 @@ export default function AI18Page() {
                                     {errorMsg}
                                 </div>
                                 <button
-                                    onClick={() => setStatus('ready')}
-                                    className="w-full py-5 bg-[#FF8DA1] text-white font-black rounded-[2.2rem] hover:bg-[#FF7A91] transition-all shadow-md active:scale-95"
+                                    onClick={handleReset}
+                                    className="w-full py-5 bg-[#FF8DA1] text-white font-black rounded-[2.2rem] hover:bg-[#FF7A91] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
                                 >
-                                    {errorMsg.includes('準備中') ? "わかった！楽しみにしてるね！" : "優しく再チャレンジ！"}
+                                    {errorMsg.includes('準備中') ? "わかった！楽しみにしてるね！" : "🏠 メニューに戻る"}
                                 </button>
                             </div>
                         </div>
