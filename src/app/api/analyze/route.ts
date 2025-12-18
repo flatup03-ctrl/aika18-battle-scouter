@@ -8,14 +8,18 @@ import { logToSheet } from '@/lib/sheets';
  * This route handles real-time media analysis using Gemini 1.5 Flash.
  */
 
-export const maxDuration = 300; // 5 minute timeout for App Router
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
+    let stage = "INIT";
     try {
-        console.log("--- Start Analyze Request ---");
-        // Parse the incoming multipart form data (real implementation)
+        const startTime = Date.now();
+        console.log(`[${startTime}] --- Start Analyze Request ---`);
+
+        stage = "UPLOAD_PARSING";
         const formData = await request.formData();
-        console.log("Form data parsed");
+        console.log(`[${Date.now()}] Form data parsed`);
+
         const type = formData.get('type') as string || 'video';
         const userId = formData.get('userId') as string || 'GUEST';
 
@@ -59,27 +63,32 @@ export async function POST(request: Request) {
         console.log(`Analyzing: ${file.name} (Type: ${type}, Size: ${file.size})`);
 
         // 1. Process File to Base64
+        stage = "FILE_PREPARATION";
         const arrayBuffer = await file.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
+        console.log(`[${Date.now()}] Base64 prep complete`);
 
         // 2. Determine Prompt
-        let prompt = "格闘技のフォーム分析をするトレーナーとして、動画（または画像）を見て、動きの正確さや改善点を1つ専門的にアドバイスしてください。";
-        let userContext = "格闘技初心者、褒められて伸びるタイプ";
+        // 1.5 Concise Prompt for Video/Mobile
+        let prompt = "格闘技フォーム分析：動きの正確さと改善点を1点、短く専門的に。";
+        let userContext = "格闘技初心者";
         let systemSummary = "戦闘力分析結果";
 
         if (type === 'image') {
-            prompt = "管理栄養士として、この食事画像を見て、含まれる主な食材を推測し、推定カロリーと健康へのアドバイスを優しく簡潔に述べてください。";
-            userContext = "健康に気を使っています。具体的で前向きなアドバイスが欲しいです。";
+            prompt = "食事解析：主な食材と推定カロリー、健康アドバイスを1つ簡潔に。";
+            userContext = "健康意識の高いユーザー";
             systemSummary = "食事・カロリー診断結果";
         }
 
         // 3. ACTUAL Gemini Analysis
-        console.log(`Starting Gemini Analysis for ${file.type}...`);
+        stage = "GEMINI_ANALYSIS";
+        console.log(`[${Date.now()}] Starting Gemini Analysis for ${file.type}...`);
         const geminiAnalysis = await analyzeMedia(file.type, base64Data, prompt);
-        console.log("Gemini Analysis Complete");
+        console.log(`[${Date.now()}] Gemini Analysis Complete`);
 
         // 4. Persona Transformation via Dify
-        console.log("Starting Dify Transformation...");
+        stage = "DIFY_TRANSFORMATION";
+        console.log(`[${Date.now()}] Starting Dify Transformation...`);
         const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
         const difyResponse = await sendToDify(
             {
@@ -100,7 +109,8 @@ export async function POST(request: Request) {
             raw_analysis: geminiAnalysis
         };
 
-        // 5. Log to Google Sheets (Non-blocking for speed)
+        // 5. Log to Google Sheets (Non-blocking)
+        stage = "LOGGING";
         logToSheet({
             userId,
             type: `${type || 'video'} (UI)`,
@@ -108,27 +118,26 @@ export async function POST(request: Request) {
             aiResponse: result.details
         }).catch(err => console.error('Logging Error:', err));
 
+        console.log(`[${Date.now()}] Request Success at stage: ${stage}`);
         return NextResponse.json({
             success: true,
             result: result,
         });
 
     } catch (error: any) {
-        console.error('Analyze API Error Details:', {
+        console.error(`Analyze API Error at Stage [${stage}]:`, {
             message: error.message,
-            stack: error.stack,
-            cause: error.cause
+            stack: error.stack
         });
 
-        // Handle specific fetch errors (like timeouts or payload too large)
         if (error.message?.includes('fetch') || error.message?.includes('timeout') || error.message?.includes('AbortError')) {
             return NextResponse.json({
-                error: '🚨 通信がタイムアウトしました。動画が長すぎる（目安15秒以内）か、ネット環境が不安定かもしれません。少し短くして再チャレンジしてみてね♪'
+                error: `🚨 通信タイムアウト (Stage: ${stage})\n動画が長すぎる（目安10秒以内）か、ネット接続が途切れちゃったかも。少し短くして再挑戦してね♪`
             }, { status: 504 });
         }
 
         return NextResponse.json(
-            { error: `解析中にエラーが発生しました: ${error.message || 'Unknown Error'}` },
+            { error: `解析中にエラーが発生しました [${stage}]: ${error.message || 'Unknown Error'}` },
             { status: 500 }
         );
     }
