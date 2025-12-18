@@ -27,6 +27,52 @@ export default function AI18Page() {
 
     const BG_IMAGE_URL = "https://ik.imagekit.io/FLATUPGYM/TOPTOP.png?updatedAt=1756897198425";
 
+    // Helper: Compress image to avoid "Payload Too Large"
+    const compressImage = (file: File): Promise<File> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new (window as any).Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // リミット 1600px (Gemini解析には十分な解像度)
+                    const MAX_SIZE = 1600;
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                        } else {
+                            reject(new Error('Blob creation failed'));
+                        }
+                    }, 'image/jpeg', 0.8); // 80% quality
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    };
+
     useEffect(() => {
         const initLiff = async () => {
             try {
@@ -61,29 +107,37 @@ export default function AI18Page() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // イーロン・マスク級の堅牢さ：クライアント側でサイズチェック（50MB上限）
-        if (file.size > 50 * 1024 * 1024) {
-            setErrorMsg('ファイルが大きすぎるみたい（50MBまで）💦\nもう少し短くするか、画質を少し落として送ってみてね！');
-            setStatus('error');
-            return;
-        }
-
         setStatus('uploading');
-        setProgress(20);
+        setProgress(10);
         setErrorMsg('');
 
-        // Generate preview
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
-
         try {
-            // Use absolute path for reliability
+            let fileToSend = file;
+
+            // 1. Client-side Image Compression (Optimization for large phone photos)
+            if (analysisType === 'image' && file.type.startsWith('image/')) {
+                setProgress(15);
+                try {
+                    fileToSend = await compressImage(file);
+                } catch (err) {
+                    console.warn('Compression failed, sending original:', err);
+                }
+            }
+
+            // 2. Final Size Check (Limit to 50MB after compression attempt)
+            if (fileToSend.size > 50 * 1024 * 1024) {
+                throw new Error('ファイルが大きすぎます（50MB上限）。もう少し短くするか、画質を落としてみてね♪');
+            }
+
+            // Generate preview for UI
+            const url = URL.createObjectURL(fileToSend);
+            setPreviewUrl(url);
+
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
             const analyzeUrl = `${origin}/api/analyze`;
 
-            // Create FormData to send the REAL file
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', fileToSend);
             formData.append('userId', profile?.userId || 'GUEST_USER');
             formData.append('type', analysisType);
 
