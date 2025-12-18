@@ -61,6 +61,13 @@ export default function AI18Page() {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // イーロン・マスク級の堅牢さ：クライアント側でサイズチェック（50MB上限）
+        if (file.size > 50 * 1024 * 1024) {
+            setErrorMsg('ファイルが大きすぎるみたい（50MBまで）💦\nもう少し短くするか、画質を少し落として送ってみてね！');
+            setStatus('error');
+            return;
+        }
+
         setStatus('uploading');
         setProgress(20);
         setErrorMsg('');
@@ -112,11 +119,36 @@ export default function AI18Page() {
         }
     };
 
-    const triggerAction = (type: 'video' | 'image' | 'chat') => {
+    const triggerAction = async (type: 'video' | 'image' | 'chat') => {
         setAnalysisType(type);
         if (type === 'chat') {
-            setErrorMsg('AI 18号、ただいま準備中なの♪\nあなたがもっと使いやすくて楽しいと感じられるように、一生懸命パワーアップしているところなんだ！\n完成まで、ワクワクしながら待っててくれると嬉しいな！きっと素敵な機能になるはずだよ♪');
-            setStatus('error');
+            const promptContent = window.prompt("AI 18号に相談したいことを入力してね♪\n（例：トレーニングのコツは？、今日の食事の評価は？）");
+            if (!promptContent) return;
+
+            setStatus('processing');
+            setProgress(50);
+            try {
+                const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                const analyzeUrl = `${origin}/api/analyze`;
+
+                const formData = new FormData();
+                formData.append('type', 'chat');
+                formData.append('text', promptContent);
+                formData.append('userId', profile?.userId || 'GUEST_USER');
+
+                const res = await fetch(analyzeUrl, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) throw new Error('通信エラーが発生しました');
+                const data = await res.json();
+                setAnalysisResult(data.result);
+                setStatus('complete');
+            } catch (err: any) {
+                setErrorMsg(err.message || 'エラーが発生しました');
+                setStatus('error');
+            }
             return;
         }
         if (fileInputRef.current) {

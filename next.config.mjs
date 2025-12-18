@@ -28,6 +28,13 @@ const nextConfig = {
 
   // ページ拡張子
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+
+  // 大きな動画・画像に対応するための実験的設定
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
 };
 
 export default nextConfig;
