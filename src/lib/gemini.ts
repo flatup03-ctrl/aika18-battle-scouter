@@ -9,20 +9,18 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
- * 動画や画像を解析する共通関数 (安定性重視 v2.3.0)
+ * 動画や画像を解析する共通関数 (安定性重視 v2.5.0)
+ * 高性能モデル(Pro等)への切り替え時も、安全性フィルタによるフリーズを防ぐ設定。
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
-    console.log(`[Gemini] Requesting analysis for ${mimeType}... (Mode: Stable-Flash-v2.3)`);
+    console.log(`[Gemini] Analysis Request: ${mimeType} (Engine: v2.5.0)`);
 
     try {
-        // Optimized settings to prevent AI internal latency
+        // NOTE: Standard Flash for speed. Can be changed to "gemini-1.5-pro" if needed.
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            // Move persona to system instruction level for faster inference
-            systemInstruction: "あなたは『AI 18号』です。元気な専門家トレーナー・栄養士として、ユーザーを明るく褒めつつ、1つだけ具体的なアドバイスを100文字程度で返します。",
+            model: "gemini-1.5-flash"
         });
 
-        // Safety Settings: BLOCK_NONE is crucial to prevent delays during video scanning
         const safetySettings = [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -31,8 +29,8 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
         ];
 
         const generationConfig = {
-            maxOutputTokens: 200,
-            temperature: 0.7,
+            maxOutputTokens: 500,
+            temperature: 0.2, // Lower temp for more accurate visual description
             topP: 0.8,
             topK: 40,
         };
@@ -57,12 +55,10 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
             return response.text();
         })();
 
-        // Race between the analysis and our internal timeout
-        const finalResponse = await Promise.race([analysisPromise, timeoutPromise]) as string;
-        return finalResponse;
+        return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini Analysis Error (v2.3.0):", error.message);
+        console.error("Gemini Analysis Error (v2.5.0):", error.message);
         throw error;
     }
 }
