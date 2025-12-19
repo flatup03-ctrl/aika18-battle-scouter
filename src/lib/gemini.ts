@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 // Initialize Gemini AI
-const apiKey = process.env.GOOGLE_API_KEY || "";
-if (!apiKey) {
-    console.error("CRITICAL: GOOGLE_API_KEY is not set!");
+const apiKey = process.env.GOOGLE_API_KEY || "AIzaSyBMyjJJ0rL037sgmue3mPRmWar78kNtRbo";
+if (!process.env.GOOGLE_API_KEY) {
+    console.warn("Using fallback Gemini API Key.");
 } else {
     console.log(`Gemini Key Check: starts with ${apiKey.substring(0, 3)}...`);
 }
