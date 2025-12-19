@@ -138,7 +138,7 @@ export default function AI18Page() {
 
             const formData = new FormData();
             formData.append('file', fileToSend);
-            formData.append('userId', profile?.userId || 'GUEST_USER');
+            formData.append('userId', profile?.displayName || profile?.userId || 'GUEST_USER');
             formData.append('type', analysisType);
 
             // Track progress manually (simulated for Fetch, but real for the flow)
@@ -188,7 +188,7 @@ export default function AI18Page() {
                 const formData = new FormData();
                 formData.append('type', 'chat');
                 formData.append('text', promptContent);
-                formData.append('userId', profile?.userId || 'GUEST_USER');
+                formData.append('userId', profile?.displayName || profile?.userId || 'GUEST_USER');
 
                 const res = await fetch(analyzeUrl, {
                     method: 'POST',
@@ -333,10 +333,20 @@ export default function AI18Page() {
                                 </div>
                             </div>
                             <button
-                                onClick={handleReset}
-                                className="w-full py-5 bg-[#FFD1DC] text-[#DB7093] font-black rounded-[2.5rem] hover:bg-[#FFB6C1] hover:text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                onClick={() => {
+                                    // GIFU App Launch via LIFF
+                                    window.location.href = "https://liff.line.me/2008276179-XxwM2QQD";
+                                }}
+                                className="w-full py-5 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] text-white font-black rounded-[2.5rem] shadow-[0_10px_30px_rgba(255,141,161,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 border-b-4 border-pink-600/20"
                             >
-                                <span>🏠</span> メニューに戻る
+                                <span className="text-xl">🎁</span> ギフ・メニューを開く
+                            </button>
+
+                            <button
+                                onClick={handleReset}
+                                className="w-full py-4 text-[#94A3B8] font-bold rounded-[2.5rem] hover:bg-black/5 transition-all text-sm"
+                            >
+                                🏠 メニューに戻る
                             </button>
                         </div>
                     )}
@@ -359,7 +369,7 @@ export default function AI18Page() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.6.6 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.6.7 Optimized</p>
                             </div>
                         </div>
                     )}
