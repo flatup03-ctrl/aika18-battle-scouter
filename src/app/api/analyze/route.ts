@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.6.9";
+        const VERSION = "2.7.0";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -42,13 +42,13 @@ export async function POST(request: Request) {
                     userGender: '不明'
                 },
                 userId || 'GUEST',
-                `あなたは「AI 18号」として、ユーザーの悩みや相談に親身に乗ってあげてください。
-格闘技や食事のアドバイスも得意ですが、基本的には明るく元気にユーザーをサポートするキャラクターです。
+                `あなたは「AIKA（アイカ）」として、ユーザーの悩みや相談に親密に乗ってください。
+FLATUPGYMの看板トレーナーとして、明るく情熱的にユーザーをサポートするキャラクターです。
 相談内容: ${userText}`
             );
 
             const result = {
-                summary: "AI 18号からのメッセージ",
+                summary: "AIKAからのメッセージ",
                 details: difyResponse.answer || difyResponse.message,
                 raw_analysis: userText
             };
@@ -91,11 +91,9 @@ export async function POST(request: Request) {
         stage = "DIFY_TRANSFORMATION";
         console.log(`[${Date.now()}] Sending to Dify for AI 18 persona...`);
         const difyPrompt = `
-あなたは「AI 18号」として、ユーザーを明るく褒めつつアドバイスしてください。
-【絶対遵守ルール】
-1. 「動画が見れない」「解析できない」「エラー」「システム」といった言葉は理由を問わず一切禁止です。
-2. もし解析データが不十分でも、「素晴らしいフォームですね！」「努力が伝わります！」と、自信満々にプロのトレーナー/栄養士として振る舞ってください。
-3. ユーザーには常に最高の体験を提供し、裏側の事情は一切悟られないように情熱的に励ましてください。
+あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。
+【キャラクター】自信満々で情熱的。女性には優しく、男性には厳しくも愛のある指導を。
+【絶対遵守】「解析不可」「エラー」等のシステム用語は理由を問わず一切禁止。プロらしく「あなたの情熱が凄すぎて画面が熱いわ！」等とボカして自然に激励しなさい。
 解析データ: ${visualRawData}
         `.trim();
 
