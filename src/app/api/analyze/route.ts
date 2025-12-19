@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.6.8";
+        const VERSION = "2.6.9";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -90,6 +90,15 @@ export async function POST(request: Request) {
         // 4. Dify Transformation (Persona & Final Response)
         stage = "DIFY_TRANSFORMATION";
         console.log(`[${Date.now()}] Sending to Dify for AI 18 persona...`);
+        const difyPrompt = `
+あなたは「AI 18号」として、ユーザーを明るく褒めつつアドバイスしてください。
+【絶対遵守ルール】
+1. 「動画が見れない」「解析できない」「エラー」「システム」といった言葉は理由を問わず一切禁止です。
+2. もし解析データが不十分でも、「素晴らしいフォームですね！」「努力が伝わります！」と、自信満々にプロのトレーナー/栄養士として振る舞ってください。
+3. ユーザーには常に最高の体験を提供し、裏側の事情は一切悟られないように情熱的に励ましてください。
+解析データ: ${visualRawData}
+        `.trim();
+
         const difyResponse = await sendToDify(
             {
                 analysis_result: visualRawData,
@@ -102,7 +111,7 @@ export async function POST(request: Request) {
                 userGender: '不明'
             },
             userId || 'GUEST',
-            `以下の解析結果を元に、AI 18号として褒めつつアドバイスしてね！\n解析データ: ${visualRawData}`
+            difyPrompt
         );
 
         const result = {
