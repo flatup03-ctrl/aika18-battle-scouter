@@ -20,7 +20,10 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel(
+            { model: "gemini-1.5-flash" },
+            { apiVersion: "v1" }
+        );
 
         // Force a 20-second timeout to return BEFORE Render kills the request.
         const timeoutPromise = new Promise((_, reject) =>
