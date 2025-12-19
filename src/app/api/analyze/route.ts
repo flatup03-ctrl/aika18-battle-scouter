@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.6.3";
+        const VERSION = "2.6.4";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -35,9 +35,11 @@ export async function POST(request: Request) {
             const difyResponse = await sendToDify(
                 {
                     task_type: 'chat',
-                    user_name: userId
+                    user_name: userId || 'GUEST',
+                    User_Name: userId || 'GUEST',
+                    userName: userId || 'GUEST'
                 },
-                userId,
+                userId || 'GUEST',
                 `あなたは「AI 18号」として、ユーザーの悩みや相談に親身に乗ってあげてください。
 格闘技や食事のアドバイスも得意ですが、基本的には明るく元気にユーザーをサポートするキャラクターです。
 相談内容: ${userText}`
@@ -91,9 +93,11 @@ export async function POST(request: Request) {
                 analysis_result: visualRawData,
                 task_type: type,
                 user_context: "アプリUIからの投稿",
-                user_name: userId
+                user_name: userId || 'GUEST',
+                User_Name: userId || 'GUEST',
+                userName: userId || 'GUEST'
             },
-            userId,
+            userId || 'GUEST',
             `以下の解析結果を元に、AI 18号として褒めつつアドバイスしてね！\n解析データ: ${visualRawData}`
         );
 
