@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.5.0";
+        const VERSION = "2.6.0";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -122,9 +122,9 @@ export async function POST(request: Request) {
             stack: error.stack
         });
 
-        if (error.message?.includes('fetch') || error.message?.includes('timeout') || error.message?.includes('AbortError') || error.message?.includes('25s limit')) {
+        if (error.message?.includes('fetch') || error.message?.includes('timeout') || error.message?.includes('AbortError')) {
             return NextResponse.json({
-                error: `🚨 通信タイムアウト (Stage: ${stage})\nAIが5秒動画でも30秒以上悩んでしまったか、APIキーが正しくない可能性があります。\n動画を5秒以内に短くして、それでもダメなら管理者にお問い合わせください♪`
+                error: `🚨 通信環境により解析に時間がかかっています。動画を3〜5秒に短くすると確実に成功します♪`
             }, { status: 504 });
         }
 

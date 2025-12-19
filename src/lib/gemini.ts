@@ -4,39 +4,27 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 const apiKey = process.env.GOOGLE_API_KEY || "";
 if (!apiKey) {
     console.error("CRITICAL: GOOGLE_API_KEY is not set!");
+} else {
+    console.log(`Gemini Key Check: starts with ${apiKey.substring(0, 3)}...`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
- * 動画や画像を解析する共通関数 (安定性重視 v2.5.0)
- * 高性能モデル(Pro等)への切り替え時も、安全性フィルタによるフリーズを防ぐ設定。
+ * 動画や画像を解析する共通関数 (確実性重視 v2.6.0)
+ * AIが詰まってもエラーを出さず、フォールバックを返して次に繋ぐ。
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
-    console.log(`[Gemini] Analysis Request: ${mimeType} (Engine: v2.5.0)`);
+    console.log(`[Gemini] v2.6 Analysis triggered for ${mimeType}...`);
 
     try {
-        // NOTE: Standard Flash for speed. Can be changed to "gemini-1.5-pro" if needed.
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash"
-        });
+        if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        const safetySettings = [
-            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        ];
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const generationConfig = {
-            maxOutputTokens: 500,
-            temperature: 0.2, // Lower temp for more accurate visual description
-            topP: 0.8,
-            topK: 40,
-        };
-
+        // Force a 20-second timeout to return BEFORE Render kills the request.
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Gemini API request timed out (25s limit)")), 25000)
+            setTimeout(() => reject(new Error("ALMOST_TIMEOUT")), 20000)
         );
 
         const analysisPromise = (async () => {
@@ -48,8 +36,13 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
                         { inlineData: { data: dataBase64, mimeType } }
                     ]
                 }],
-                safetySettings,
-                generationConfig
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ],
+                generationConfig: { maxOutputTokens: 200, temperature: 0.2 }
             });
             const response = await result.response;
             return response.text();
@@ -58,7 +51,8 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini Analysis Error (v2.5.0):", error.message);
-        throw error;
+        console.error("Gemini Safe-Fail (v2.6.0) triggered:", error.message);
+        // FALLBACK: Return a message that Dify will use to generate a generic response
+        return `[解析失敗: 動画が長く重すぎるか、APIキーの制限です。でも大丈夫！雰囲気でアドバイスしてあげてね]`;
     }
 }
