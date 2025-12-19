@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.6.4";
+        const VERSION = "2.6.5";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -37,7 +37,9 @@ export async function POST(request: Request) {
                     task_type: 'chat',
                     user_name: userId || 'GUEST',
                     User_Name: userId || 'GUEST',
-                    userName: userId || 'GUEST'
+                    userName: userId || 'GUEST',
+                    user_gender: '不明',
+                    userGender: '不明'
                 },
                 userId || 'GUEST',
                 `あなたは「AI 18号」として、ユーザーの悩みや相談に親身に乗ってあげてください。
@@ -95,7 +97,9 @@ export async function POST(request: Request) {
                 user_context: "アプリUIからの投稿",
                 user_name: userId || 'GUEST',
                 User_Name: userId || 'GUEST',
-                userName: userId || 'GUEST'
+                userName: userId || 'GUEST',
+                user_gender: '不明',
+                userGender: '不明'
             },
             userId || 'GUEST',
             `以下の解析結果を元に、AI 18号として褒めつつアドバイスしてね！\n解析データ: ${visualRawData}`
