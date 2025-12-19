@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.2.0";
+        const VERSION = "2.3.0";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -70,12 +70,8 @@ export async function POST(request: Request) {
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
         console.log(`[${Date.now()}] Base64 prep complete`);
 
-        // 2. Determine Prompt (Ultra-Minimal for Latency)
         const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
-        const personaPrompt = `
-あなたは AI 18号。元気な専門家です。
-${taskLabel}を解析し、褒め＋改善点1つを120文字以内で親しみやすく回答。
-`.trim();
+        const personaPrompt = `以下の${taskLabel}を分析して褒め＋アドバイスを。`.trim();
 
         let systemSummary = type === 'image' ? "食事・カロリー診断結果" : "戦闘力分析結果";
 
