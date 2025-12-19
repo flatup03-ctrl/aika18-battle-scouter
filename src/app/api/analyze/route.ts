@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.3.0";
+        const VERSION = "2.4.0";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -75,19 +75,31 @@ export async function POST(request: Request) {
 
         let systemSummary = type === 'image' ? "食事・カロリー診断結果" : "戦闘力分析結果";
 
-        // 3. ACTUAL Gemini Analysis (Persona Integrated)
-        stage = "GEMINI_ANALYSIS_PERSONA";
-        console.log(`[${Date.now()}] Starting Fast Analysis (v2.1.0)...`);
-        const aiResponse = await analyzeMedia(file.type, base64Data, personaPrompt);
-        console.log(`[${Date.now()}] Analysis Complete`);
+        // 3. ACTUAL Gemini Analysis (Visual Extraction Only)
+        stage = "GEMINI_ANALYSIS";
+        console.log(`[${Date.now()}] Starting Visual Extraction for ${file.type}...`);
+        const visualRawData = await analyzeMedia(file.type, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。");
+
+        // 4. Dify Transformation (Persona & Final Response)
+        stage = "DIFY_TRANSFORMATION";
+        console.log(`[${Date.now()}] Sending to Dify for AI 18 persona...`);
+        const difyResponse = await sendToDify(
+            {
+                analysis_result: visualRawData,
+                task_type: type,
+                user_context: "アプリUIからの投稿"
+            },
+            userId,
+            `以下の解析結果を元に、AI 18号として褒めつつアドバイスしてね！\n解析データ: ${visualRawData}`
+        );
 
         const result = {
             summary: systemSummary,
-            details: aiResponse,
-            raw_analysis: aiResponse
+            details: difyResponse.answer || difyResponse.message || visualRawData,
+            raw_analysis: visualRawData
         };
 
-        // 4. Log to Google Sheets (Non-blocking)
+        // 5. Log to Google Sheets (Non-blocking)
         stage = "LOGGING";
         logToSheet({
             userId,
