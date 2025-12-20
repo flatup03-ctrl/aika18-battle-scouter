@@ -43,7 +43,7 @@ export const geminiService = {
             console.log('Video processed. Generating content...');
 
             // 3. Generate Content
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
             const prompt = "あなたはプロの格闘技トレーナーです。この動画のフォームを解析し、良い点と改善点を具体的にアドバイスしてください。危険な動きがあれば指摘してください。";
 
             const result = await model.generateContent([

@@ -7,7 +7,7 @@ if (!apiKey) {
     console.warn("⚠️ [Gemini] GOOGLE_API_KEY is MISSING! Analysis will fail.");
 } else {
     const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-    console.log(`[Gemini] v2.9.11 Engine Ready. Key: [${hiddenKey}] (Model: Flash)`);
+    console.log(`[Gemini] v2.9.12 Engine Ready. Key: [${hiddenKey}] (Model: Flash-Latest)`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -15,7 +15,7 @@ const fileManager = new GoogleAIFileManager(apiKey);
 
 /**
  * Uploads a file to Gemini and waits for it to be ACTIVE.
- * Adjusted for v2.9.11: 5s polling retained.
+ * Adjusted for v2.9.12: 5s polling retained.
  */
 async function uploadAndPoll(filePath: string, mimeType: string) {
     console.log(`[Gemini FileAPI] Uploading ${filePath}...`);
@@ -44,7 +44,7 @@ async function uploadAndPoll(filePath: string, mimeType: string) {
 }
 
 /**
- * 動画や画像を解析する共通関数 (v2.9.11 File API Support)
+ * 動画や画像を解析する共通関数 (v2.9.12 File API Support)
  * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
  * filePathが指定された場合はFile APIとおしてアップロード・解析を行う（動画推奨）。
  */
@@ -52,7 +52,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
 
     // 1. Video Analysis via File API (Robust Mode)
     if (mimeType?.startsWith('video/') && filePath) {
-        console.log(`[Gemini] v2.9.11 (Flash FileAPI) Video Analysis Start...`);
+        console.log(`[Gemini] v2.9.12 (Flash-Latest FileAPI) Video Analysis Start...`);
         let uploadedFile = null;
         try {
             if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -60,8 +60,8 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
             // Upload & Wait
             uploadedFile = await uploadAndPoll(filePath, mimeType);
 
-            // Analyze with Flash (Most Basic Alias)
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            // Verified model name for this API key: gemini-flash-latest
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
             const result = await model.generateContent({
                 contents: [{
@@ -93,13 +93,13 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
     }
 
     // 2. Existing Inline Logic
-    console.log(`[Gemini] v2.9.11 (Flash Inline) Analysis Start...`);
+    console.log(`[Gemini] v2.9.12 (Flash-Latest Inline) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Use Flash (Most Basic Alias)
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Use Flash-Latest
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>
