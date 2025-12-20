@@ -74,10 +74,25 @@ export default function AI18Page() {
     };
 
     useEffect(() => {
-        const initLiff = async () => {
+        const startApp = async () => {
             try {
                 const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2008276179-XxwM2QQD';
-                await liff.init({ liffId });
+
+                try {
+                    await liff.init({ liffId });
+                } catch (err: any) {
+                    const errStr = err.message || err.toString() || '';
+                    if (errStr.includes('code_verifier')) {
+                        console.warn('LIFF: code_verifier mismatch detected. Cleaning URL...');
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('code');
+                        url.searchParams.delete('state');
+                        url.searchParams.delete('liff.state');
+                        window.location.replace(url.toString());
+                        return;
+                    }
+                    throw err;
+                }
 
                 if (liff.isLoggedIn()) {
                     const p = await liff.getProfile();
@@ -96,11 +111,11 @@ export default function AI18Page() {
                 }
             } catch (e: any) {
                 console.error('LIFF Init Error', e);
-                setErrorMsg(`AI 18号、ちょっと困っちゃったみたい…！\n通信環境を確認して、もう一度開いてみてね♪`);
-                setStatus('error');
+                setProfile({ userId: 'GUEST_USER', displayName: 'ゲスト' });
+                setStatus('ready');
             }
         };
-        initLiff();
+        startApp();
     }, []);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -333,10 +348,20 @@ export default function AI18Page() {
                                 </div>
                             </div>
                             <button
-                                onClick={handleReset}
-                                className="w-full py-5 bg-[#FFD1DC] text-[#DB7093] font-black rounded-[2.5rem] hover:bg-[#FFB6C1] hover:text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                onClick={() => {
+                                    // Transition to Trial Application (Secondary LIFF)
+                                    window.location.href = "https://liff.line.me/2008276179-41Dz3bbJ";
+                                }}
+                                className="w-full py-5 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] text-white font-black rounded-[2.5rem] shadow-[0_10px_30px_rgba(255,141,161,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 border-b-4 border-pink-600/20"
                             >
-                                <span>🏠</span> メニューに戻る
+                                <span className="text-xl">🥋</span> 無料体験を申し込む
+                            </button>
+
+                            <button
+                                onClick={handleReset}
+                                className="w-full py-4 text-[#94A3B8] font-bold rounded-[2.5rem] hover:bg-black/5 transition-all text-sm"
+                            >
+                                🏠 メニューに戻る
                             </button>
                         </div>
                     )}
@@ -359,7 +384,7 @@ export default function AI18Page() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.1 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.2 Optimized</p>
                             </div>
                         </div>
                     )}
