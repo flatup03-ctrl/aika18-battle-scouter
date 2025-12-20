@@ -7,7 +7,7 @@ if (!apiKey) {
     console.warn("⚠️ [Gemini] GOOGLE_API_KEY is MISSING! Analysis will fail.");
 } else {
     const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-    console.log(`[Gemini] v2.9.7 Engine Ready. Key: [${hiddenKey}]`);
+    console.log(`[Gemini] v2.9.8 Engine Ready. Key: [${hiddenKey}] (Model: Pro)`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -15,7 +15,7 @@ const fileManager = new GoogleAIFileManager(apiKey);
 
 /**
  * Uploads a file to Gemini and waits for it to be ACTIVE.
- * Adjusted for v2.9.7: Slower polling (5s) to avoid premature FAILED state.
+ * Adjusted for v2.9.8: 5s polling retained for stability.
  */
 async function uploadAndPoll(filePath: string, mimeType: string) {
     console.log(`[Gemini FileAPI] Uploading ${filePath}...`);
@@ -32,7 +32,7 @@ async function uploadAndPoll(filePath: string, mimeType: string) {
     while (activeFile.state === "PROCESSING") {
         attempts++;
         console.log(`[Gemini FileAPI] Processing... (Attempt ${attempts} - 5s wait)`);
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // Increased to 5s
+        await new Promise((resolve) => setTimeout(resolve, 5000));
         activeFile = await fileManager.getFile(file.name);
     }
 
@@ -44,7 +44,7 @@ async function uploadAndPoll(filePath: string, mimeType: string) {
 }
 
 /**
- * 動画や画像を解析する共通関数 (v2.9.7 File API Support)
+ * 動画や画像を解析する共通関数 (v2.9.8 File API Support)
  * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
  * filePathが指定された場合はFile APIとおしてアップロード・解析を行う（動画推奨）。
  */
@@ -52,7 +52,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
 
     // 1. Video Analysis via File API (Robust Mode)
     if (mimeType?.startsWith('video/') && filePath) {
-        console.log(`[Gemini] v2.9.7 (Flash FileAPI) Video Analysis Start...`);
+        console.log(`[Gemini] v2.9.8 (Pro FileAPI) Video Analysis Start...`);
         let uploadedFile = null;
         try {
             if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -60,8 +60,8 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
             // Upload & Wait
             uploadedFile = await uploadAndPoll(filePath, mimeType);
 
-            // Analyze with Flash (Simple Alias) as requested in v2.9.7
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            // Analyze with Pro (Most Stable)
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
             const result = await model.generateContent({
                 contents: [{
@@ -79,7 +79,6 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
 
         } catch (error: any) {
             console.error("Gemini Video Analysis Error:", error);
-            // Return specific error message if it was a processing failure
             if (error.message?.includes('processing failed')) {
                 return "（動画の処理に失敗しちゃった... 別の動画で試してみて！）";
             }
@@ -94,13 +93,13 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
     }
 
     // 2. Existing Inline Logic (Text/Image or Video Fallback)
-    console.log(`[Gemini] v2.9.7 (Flash Inline) Analysis Start...`);
+    console.log(`[Gemini] v2.9.8 (Pro Inline) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Use Flash (Simple Alias)
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Use Pro (Most Stable)
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>
@@ -133,7 +132,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.9.7):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.9.8):", error.message);
         // User-ready fallback messages
         const isImage = mimeType?.startsWith('image');
         const isVideo = mimeType?.startsWith('video');
