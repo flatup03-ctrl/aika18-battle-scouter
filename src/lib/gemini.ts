@@ -18,13 +18,13 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
  */
 export async function analyzeMedia(mimeType?: string, dataBase64?: string, prompt: string = "") {
-    console.log(`[Gemini] v2.8.8 Analysis Start...`);
+    console.log(`[Gemini] v2.9.0 (Pro) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Use the specific stable version to avoid routing 404s
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+        // User requested "Pro" model. Using stable 1.5 Pro.
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>

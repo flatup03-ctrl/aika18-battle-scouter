@@ -32,9 +32,9 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: '相談内容を入力してください。' }, { status: 400 });
             }
 
-            // 1. Text Analysis with Gemini (v2.8.5)
-            console.log(`[UI Chat] Starting Text Analysis with Gemini...`);
-            const visualRawData = await analyzeMedia(undefined, undefined, `以下の相談内容を専門的な観点から分析し、重要なポイントを1つ抽出してください。\n相談内容: ${userText}`);
+            // 1. Optimization: Bypass Gemini for Text (Direct to Dify)
+            console.log(`[UI Chat] Optimization: Skipping Gemini for text. Direct to Dify.`);
+            const visualRawData = `(テキスト相談: ${userText})`;
 
             // 2. Dify Transformation
             const difyPrompt = `
@@ -44,7 +44,6 @@ export async function POST(request: Request) {
 【リンクの完全指定】
 体験予約の案内をする際は、以下のリンクのみを使用してください。
 👉 https://liff.line.me/2008276179-41Dz3bbJ
-分析結果: ${visualRawData}
 相談内容: ${userText}
             `.trim();
 
