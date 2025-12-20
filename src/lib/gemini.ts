@@ -7,7 +7,7 @@ if (!apiKey) {
     console.warn("⚠️ [Gemini] GOOGLE_API_KEY is MISSING! Analysis will fail.");
 } else {
     const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-    console.log(`[Gemini] v2.9.9 Engine Ready. Key: [${hiddenKey}] (Model: Flash-001)`);
+    console.log(`[Gemini] v2.9.10 Engine Ready. Key: [${hiddenKey}] (Model: Pro-001)`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -15,7 +15,7 @@ const fileManager = new GoogleAIFileManager(apiKey);
 
 /**
  * Uploads a file to Gemini and waits for it to be ACTIVE.
- * Adjusted for v2.9.9: 5s polling retained.
+ * Adjusted for v2.9.10: 5s polling retained.
  */
 async function uploadAndPoll(filePath: string, mimeType: string) {
     console.log(`[Gemini FileAPI] Uploading ${filePath}...`);
@@ -44,7 +44,7 @@ async function uploadAndPoll(filePath: string, mimeType: string) {
 }
 
 /**
- * 動画や画像を解析する共通関数 (v2.9.9 File API Support)
+ * 動画や画像を解析する共通関数 (v2.9.10 File API Support)
  * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
  * filePathが指定された場合はFile APIとおしてアップロード・解析を行う（動画推奨）。
  */
@@ -52,7 +52,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
 
     // 1. Video Analysis via File API (Robust Mode)
     if (mimeType?.startsWith('video/') && filePath) {
-        console.log(`[Gemini] v2.9.9 (Flash-001 FileAPI) Video Analysis Start...`);
+        console.log(`[Gemini] v2.9.10 (Pro-001 FileAPI) Video Analysis Start...`);
         let uploadedFile = null;
         try {
             if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -60,9 +60,8 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
             // Upload & Wait
             uploadedFile = await uploadAndPoll(filePath, mimeType);
 
-            // Analyze with Flash-001 (Verified Available)
-            // Note: Pro failed with 404. Flash-001 exists but needs compliant video (which we now have via transcoding).
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+            // Analyze with Pro-001 (Specific Version for 404 fix)
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-001" });
 
             const result = await model.generateContent({
                 contents: [{
@@ -93,14 +92,14 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         }
     }
 
-    // 2. Existing Inline Logic (Text/Image or Video Fallback)
-    console.log(`[Gemini] v2.9.9 (Flash-001 Inline) Analysis Start...`);
+    // 2. Existing Inline Logic
+    console.log(`[Gemini] v2.9.10 (Pro-001 Inline) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Use Flash-001 (Verified Available)
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+        // Use Pro-001 (Specific Version)
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-001" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>
