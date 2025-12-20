@@ -126,7 +126,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.9.3):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.9.4):", error.message);
         // User-ready fallback messages
         const isImage = mimeType?.startsWith('image');
         const isVideo = mimeType?.startsWith('video');
