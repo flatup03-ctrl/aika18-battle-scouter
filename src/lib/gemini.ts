@@ -7,7 +7,7 @@ if (!apiKey) {
     console.warn("⚠️ [Gemini] GOOGLE_API_KEY is MISSING! Analysis will fail.");
 } else {
     const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-    console.log(`[Gemini] v2.9.3 Engine Ready. Key: [${hiddenKey}]`);
+    console.log(`[Gemini] v2.9.6 Engine Ready. Key: [${hiddenKey}]`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -41,7 +41,7 @@ async function uploadAndPoll(filePath: string, mimeType: string) {
 }
 
 /**
- * 動画や画像を解析する共通関数 (v2.9.3 File API Support)
+ * 動画や画像を解析する共通関数 (v2.9.6 File API Support)
  * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
  * filePathが指定された場合はFile APIとおしてアップロード・解析を行う（動画推奨）。
  */
@@ -49,7 +49,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
 
     // 1. Video Analysis via File API (Robust Mode)
     if (mimeType?.startsWith('video/') && filePath) {
-        console.log(`[Gemini] v2.9.3 (Flash FileAPI) Video Analysis Start...`);
+        console.log(`[Gemini] v2.9.6 (Flash FileAPI) Video Analysis Start...`);
         let uploadedFile = null;
         try {
             if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -87,7 +87,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
     }
 
     // 2. Existing Inline Logic (Text/Image or Video Fallback)
-    console.log(`[Gemini] v2.9.3 (Flash Inline) Analysis Start...`);
+    console.log(`[Gemini] v2.9.6 (Flash Inline) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -126,7 +126,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.9.5):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.9.6):", error.message);
         // User-ready fallback messages
         const isImage = mimeType?.startsWith('image');
         const isVideo = mimeType?.startsWith('video');
