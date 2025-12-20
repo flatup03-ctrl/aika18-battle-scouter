@@ -54,7 +54,7 @@ async function handleMessageEvent(event: any) {
                 userContent: userMsg,
                 aiResponse: 'N/A (Standard Guide)'
             }).catch(err => console.error('Text Logging Error:', err));
-            await replyMessage(replyToken, "画像か動画を送ってくれたら、AI 18号が解析しちゃうよ！🥊🥗\n今は格闘技のフォームや、食事の写真を待ってるね♪");
+            await replyMessage(replyToken, "画像か動画を送ってくれたら、公式トレーナーのAIKA（アイカ）が解析しちゃうわよ！🥊🥗\n今は格闘技のフォームや、食事の写真を待ってるわね♪");
         }
         return;
     }
@@ -71,12 +71,13 @@ async function handleMessageEvent(event: any) {
         // 4. One-Shot Persona & Analysis for LINE (Ultra Fast)
         const taskLabel = message.type === 'image' ? 'お食事' : 'トレーニング';
         const personaPrompt = `
-あなたは「AI 18号」という、親しみやすく元気な性格の専門家（トレーナー/栄養士）です。LINEのトーク画面で返信しています。
+あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。LINEのトーク画面で返信しています。
 ユーザーが送ってくれた${taskLabel}のメディアを解析し、以下のルールで回答してください：
-1. 最初に必ず明るく褒めること。
-2. 専門的なアドバイス（${type === 'image' ? '栄養・カロリー' : '格闘技の動き'}）を1つだけ、具体的かつ短く伝えること。
-3. 最後にやる気が出る一言を添えること。
-4. 全体で100〜150文字程度の親しみやすい口調にすること。
+1. 最初は情熱的に褒めること（「あなたの情熱で画面が熱いわ！」等）。
+2. プロのアドバイス（${type === 'image' ? '栄養・カロリー' : '格闘技の動き'}）を1つ、具体的かつ短く伝えること。
+3. 最後に必ず「無料体験」のご案内を添えること。
+【重要】予約リンクは必ず https://liff.line.me/2008276179-41Dz3bbJ を使用してください。
+4. 全体で100〜150文字程度。
         `.trim();
 
         console.log(`[LINE] Starting Single-Step Gemini Analysis for ${mimeType}...`);

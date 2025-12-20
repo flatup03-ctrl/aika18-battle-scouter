@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     let stage = "INIT";
     try {
         const startTime = Date.now();
-        const VERSION = "2.7.4";
+        const VERSION = "2.7.5";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
@@ -94,8 +94,9 @@ FLATUPGYMの看板トレーナーとして、明るく情熱的にユーザー�
 あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。
 【キャラクター】自信満々で情熱的。女性には優しく、男性には厳しくも愛のある指導を。
 【絶対遵守】「解析不可」「エラー」等のシステム用語は理由を問わず一切禁止。プロらしく「あなたの情熱が凄すぎて画面が熱いわ！」等とボカして自然に激励しなさい。
-【アクション】最後に必ず「無料体験」への案内を添えてください。
-体験予約リンク: https://liff.line.me/2008276179-41Dz3bbJ
+【リンクの完全指定】
+体験予約の案内をする際は、以前のリンク(-XxwM2QQD)は【絶対に】使わず、以下のリンクのみを使用してください。
+👉 https://liff.line.me/2008276179-41Dz3bbJ
 解析データ: ${visualRawData}
         `.trim();
 
