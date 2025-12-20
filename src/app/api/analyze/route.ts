@@ -13,7 +13,7 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
     let stage = "INIT";
     try {
-        const VERSION = "2.8.7";
+        const VERSION = "2.8.8";
         const startTime = Date.now();
         console.log(`[${startTime}] --- AIKA Analytics Request v${VERSION} Start ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
