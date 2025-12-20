@@ -66,12 +66,32 @@ async function handleMessageEvent(event: any) {
 
             // 3. Download Media Content from LINE
             const mediaBuffer = await downloadLineContent(message.id);
-            const base64Data = mediaBuffer.toString('base64');
             const mimeType = message.type === 'image' ? 'image/jpeg' : 'video/mp4';
 
-            // 4. One-Shot Persona & Analysis for LINE (Ultra Fast)
-            console.log(`[LINE] Starting Visual Extraction with Gemini...`);
-            visualRawData = await analyzeMedia(mimeType, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ簡潔に。");
+            if (message.type === 'video') {
+                // Video: Save to temp file for File API
+                const fs = require('fs/promises');
+                const path = require('path');
+                const os = require('os');
+                const tempFilePath = path.join(os.tmpdir(), `video_${message.id}.mp4`);
+
+                await fs.writeFile(tempFilePath, mediaBuffer);
+                console.log(`[LINE] Video saved to ${tempFilePath}`);
+
+                try {
+                    // Pass filePath to analyzeMedia (File API Flow)
+                    console.log(`[LINE] Starting Video Analysis (File API)...`);
+                    visualRawData = await analyzeMedia(mimeType, undefined, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ簡潔に。", tempFilePath);
+                } finally {
+                    // Clean up temp file (though analyzeMedia tries to delete, good to ensure)
+                    await fs.unlink(tempFilePath).catch(() => { });
+                }
+            } else {
+                // Image: Keep existing Inline Base64 (Faster for images)
+                const base64Data = mediaBuffer.toString('base64');
+                console.log(`[LINE] Starting Visual Extraction with Gemini (Inline)...`);
+                visualRawData = await analyzeMedia(mimeType, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ簡潔に。");
+            }
         }
 
         console.log(`[LINE] Gemini Analysis Complete. Sending to Dify...`);

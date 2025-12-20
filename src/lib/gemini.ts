@@ -1,30 +1,99 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import { GoogleAIFileManager } from "@google/generative-ai/server";
 
 const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
 
 if (!apiKey) {
     console.warn("⚠️ [Gemini] GOOGLE_API_KEY is MISSING! Analysis will fail.");
 } else {
-    // Show first 4 and last 4 for better debugging without leaking
     const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-    console.log(`[Gemini] v2.8.3 Engine Ready. Key: [${hiddenKey}]`);
+    console.log(`[Gemini] v2.9.3 Engine Ready. Key: [${hiddenKey}]`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
+const fileManager = new GoogleAIFileManager(apiKey);
 
 /**
- * 動画や画像を解析する共通関数 (v2.8.5)
- * 「止まらない・壊れない」AIKA体験を支えるコアエンジン。
- * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
+ * Uploads a file to Gemini and waits for it to be ACTIVE.
  */
-export async function analyzeMedia(mimeType?: string, dataBase64?: string, prompt: string = "") {
-    console.log(`[Gemini] v2.9.2 (Flash) Analysis Start...`);
+async function uploadAndPoll(filePath: string, mimeType: string) {
+    console.log(`[Gemini FileAPI] Uploading ${filePath}...`);
+    const uploadResult = await fileManager.uploadFile(filePath, {
+        mimeType,
+        displayName: "LineVideo_" + Date.now(),
+    });
+    const file = uploadResult.file;
+    console.log(`[Gemini FileAPI] Uploaded ${file.name}. URI: ${file.uri}`);
+
+    // Wait for processing
+    let activeFile = await fileManager.getFile(file.name);
+    while (activeFile.state === "PROCESSING") {
+        console.log(`[Gemini FileAPI] Processing...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        activeFile = await fileManager.getFile(file.name);
+    }
+
+    if (activeFile.state !== "ACTIVE") {
+        throw new Error(`File processing failed: ${activeFile.state}`);
+    }
+    console.log(`[Gemini FileAPI] File is ACTIVE.`);
+    return activeFile;
+}
+
+/**
+ * 動画や画像を解析する共通関数 (v2.9.3 File API Support)
+ * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
+ * filePathが指定された場合はFile APIとおしてアップロード・解析を行う（動画推奨）。
+ */
+export async function analyzeMedia(mimeType?: string, dataBase64?: string, prompt: string = "", filePath?: string) {
+
+    // 1. Video Analysis via File API (Robust Mode)
+    if (mimeType?.startsWith('video/') && filePath) {
+        console.log(`[Gemini] v2.9.3 (Flash FileAPI) Video Analysis Start...`);
+        let uploadedFile = null;
+        try {
+            if (!apiKey) throw new Error("API_KEY_MISSING");
+
+            // Upload & Wait
+            uploadedFile = await uploadAndPoll(filePath, mimeType);
+
+            // Analyze with Flash-001 (Fast & Free)
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            const result = await model.generateContent({
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { fileData: { mimeType: uploadedFile.mimeType, fileUri: uploadedFile.uri } },
+                        { text: prompt }
+                    ]
+                }],
+                generationConfig: { maxOutputTokens: 250, temperature: 0.2 }
+            });
+
+            const response = await result.response;
+            return response.text();
+
+        } catch (error: any) {
+            console.error("Gemini Video Analysis Error:", error);
+            return "（動画の解析に失敗しちゃった...もう一度試してみてね！）";
+        } finally {
+            // Cleanup: Always delete the file from Gemini Storage
+            if (uploadedFile) {
+                console.log(`[Gemini FileAPI] Deleting ${uploadedFile.name}...`);
+                await fileManager.deleteFile(uploadedFile.name).catch(e => console.error("Cleanup error:", e));
+            }
+        }
+    }
+
+    // 2. Existing Inline Logic (Text/Image or Video Fallback)
+    console.log(`[Gemini] v2.9.3 (Flash Inline) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Reverting to Flash-001 as Pro models are 404ing in this env.
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+        // Use Flash for everything now
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>
@@ -57,7 +126,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.9.2):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.9.3):", error.message);
         // User-ready fallback messages
         const isImage = mimeType?.startsWith('image');
         const isVideo = mimeType?.startsWith('video');
