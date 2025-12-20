@@ -44,56 +44,81 @@ async function handleMessageEvent(event: any) {
     const { message, replyToken, source } = event;
     const userId = source.userId;
 
-    // Handle only Image and Video
-    if (message.type !== 'image' && message.type !== 'video') {
-        const userMsg = message.text;
-
-        // Keyword Detection: Booking / Trial / Visit
-        if (userMsg.includes('予約') || userMsg.includes('体験') || userMsg.includes('申し込み') || userMsg.includes('見学')) {
-            await replyMessage(replyToken, "体験予約をご検討ね！嬉しいわ！🥊✨\nこちらのリンクから簡単に予約できるわよ。ジムで会えるのを楽しみにしてるわね！\n\n🥋 無料体験予約: https://liff.line.me/2008276179-41Dz3bbJ");
-        } else {
-            await replyMessage(replyToken, "公式トレーナーのAIKA（アイカ）よ！🥊🥗\n画像か動画を送ってくれたら、プロの視点で解析しちゃうわよ！\n今は格闘技のフォームや、食事の写真を待ってるわね♪");
-        }
-
-        logToSheet({
-            userId,
-            type: 'Text (LINE)',
-            userContent: userMsg,
-            aiResponse: 'Keyword/General Reply sent'
-        }).catch(err => console.error('Text Logging Error:', err));
-        return;
+    // Handle Text, Image and Video
+    if (message.type !== 'text' && message.type !== 'image' && message.type !== 'video') {
+        return; // Ignore other message types
     }
 
     try {
-        // Determine media type
-        const type = message.type === 'image' ? 'image' : 'video';
+        let visualRawData = "";
+        let type = message.type;
+        let taskLabel = "";
 
-        // 3. Download Media Content from LINE
-        const mediaBuffer = await downloadLineContent(message.id);
-        const base64Data = mediaBuffer.toString('base64');
-        const mimeType = message.type === 'image' ? 'image/jpeg' : 'video/mp4';
+        if (message.type === 'text') {
+            const userMsg = message.text;
+            console.log(`[LINE] Starting Text Analysis with Gemini...`);
+            visualRawData = await analyzeMedia(undefined, undefined, `ユーザーからのメッセージを分析し、意図や重要なキーワードを抽出してください。\nメッセージ: ${userMsg}`);
+            taskLabel = "メッセージ";
+        } else {
+            // Determine media type
+            type = message.type === 'image' ? 'image' : 'video';
+            taskLabel = message.type === 'image' ? 'お食事' : 'トレーニング';
 
-        // 4. One-Shot Persona & Analysis for LINE (Ultra Fast)
-        const taskLabel = message.type === 'image' ? 'お食事' : 'トレーニング';
-        const personaPrompt = `
-あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。LINEのトーク画面で返信しています。
-ユーザーが送ってくれた${taskLabel}のメディアを解析し、以下のルールで回答してください：
-1. 最初は情熱的に褒めること（「あなたの情熱で画面が熱いわ！」等）。
-2. プロのアドバイス（${type === 'image' ? '栄養・カロリー' : '格闘技の動き'}）を1つ、具体的かつ短く伝えること。
-3. 最後に必ず「無料体験」のご案内を添えること。
-【重要】予約リンクは必ず https://liff.line.me/2008276179-41Dz3bbJ を使用してください。
-4. 全体で100〜150文字程度。
+            // 3. Download Media Content from LINE
+            const mediaBuffer = await downloadLineContent(message.id);
+            const base64Data = mediaBuffer.toString('base64');
+            const mimeType = message.type === 'image' ? 'image/jpeg' : 'video/mp4';
+
+            // 4. One-Shot Persona & Analysis for LINE (Ultra Fast)
+            console.log(`[LINE] Starting Visual Extraction with Gemini...`);
+            visualRawData = await analyzeMedia(mimeType, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ簡潔に。");
+        }
+
+        console.log(`[LINE] Gemini Analysis Complete. Sending to Dify...`);
+
+        // 5. Dify Transformation (Persona & Centralized Logging)
+        const difyPrompt = `
+あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。
+【キャラクター】自信満々で情熱的。女性には優しく、男性には厳しくも愛のある指導を。
+【返答の基本】LINEトークでのメッセージ・${taskLabel}に対して、ファンを増やすような魅力的で元気な返答をしてください。
+【予約への案内】
+体験予約や見学、申し込みに関する話題が出た場合は、必ず以下のリンクを案内してください。
+👉 https://liff.line.me/2008276179-41Dz3bbJ
+解析/分析データ: ${visualRawData}
+ユーザー発言: ${message.type === 'text' ? message.text : '(メディア投稿)'}
         `.trim();
 
-        console.log(`[LINE] Starting Single-Step Gemini Analysis for ${mimeType}...`);
-        const answer = await analyzeMedia(mimeType, base64Data, personaPrompt);
-        console.log(`[LINE] Analysis Complete`);
+        let difyResponse;
+        try {
+            difyResponse = await sendToDify(
+                {
+                    analysis_result: visualRawData,
+                    task_type: type,
+                    user_context: "LINEトーク画面からの投稿",
+                    user_name: userId || 'LINE_USER',
+                    User_Name: userId || 'LINE_USER',
+                    userName: userId || 'LINE_USER',
+                    user_gender: '不明',
+                    user_text: message.type === 'text' ? message.text : ''
+                },
+                userId || 'LINE_USER',
+                difyPrompt
+            );
+        } catch (err: any) {
+            console.error(`[LINE] Dify Error (Fallback):`, err.message);
+            difyResponse = {
+                answer: `${visualRawData}\n\n（※通信状況により、AIKAからの特別メッセージが届きにくいみたい。でも内容はしっかり確認したわよ！🔥）`
+            };
+        }
+
+        const answer = difyResponse.answer || difyResponse.message || visualRawData;
+        console.log(`[LINE] Dify Response Received`);
 
         // 7. Log to Google Sheets (Non-blocking)
         logToSheet({
             userId,
             type: `${type} (LINE)`,
-            userContent: `MediaID: ${message.id}`,
+            userContent: message.type === 'text' ? message.text : `MediaID: ${message.id}`,
             aiResponse: answer
         }).catch(err => console.error('Webhook Logging Error:', err));
 
@@ -102,7 +127,7 @@ async function handleMessageEvent(event: any) {
 
     } catch (error) {
         console.error('Handle Message Error:', error);
-        await replyMessage(replyToken, "ごめんね、うまく解析できなかったみたい…💦\nもう一度送ってみてくれるかな？");
+        await replyMessage(replyToken, "ごめんね、うまくお返事できなかったみたい…💦\nもう一度送ってみてくれるかな？");
     }
 }
 

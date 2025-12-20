@@ -13,7 +13,7 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
     let stage = "INIT";
     try {
-        const VERSION = "2.8.3";
+        const VERSION = "2.8.6";
         const startTime = Date.now();
         console.log(`[${startTime}] --- AIKA Analytics Request v${VERSION} Start ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
@@ -32,25 +32,49 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: '相談内容を入力してください。' }, { status: 400 });
             }
 
-            const difyResponse = await sendToDify(
-                {
-                    task_type: 'chat',
-                    user_name: userId || 'GUEST',
-                    User_Name: userId || 'GUEST',
-                    userName: userId || 'GUEST',
-                    user_gender: '不明',
-                    userGender: '不明'
-                },
-                userId || 'GUEST',
-                `あなたは「AIKA（アイカ）」として、ユーザーの悩みや相談に親密に乗ってください。
-FLATUPGYMの看板トレーナーとして、明るく情熱的にユーザーをサポートするキャラクターです。
-相談内容: ${userText}`
-            );
+            // 1. Text Analysis with Gemini (v2.8.5)
+            console.log(`[UI Chat] Starting Text Analysis with Gemini...`);
+            const visualRawData = await analyzeMedia(undefined, undefined, `以下の相談内容を専門的な観点から分析し、重要なポイントを1つ抽出してください。\n相談内容: ${userText}`);
+
+            // 2. Dify Transformation
+            const difyPrompt = `
+あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。
+【キャラクター】自信満々で情熱的。女性には優しく、男性には厳しくも愛のある指導を。
+【相談への返答】ユーザーの悩みに対し、プロフェッショナルかつ親身に答えてください。
+【リンクの完全指定】
+体験予約の案内をする際は、以下のリンクのみを使用してください。
+👉 https://liff.line.me/2008276179-41Dz3bbJ
+分析結果: ${visualRawData}
+相談内容: ${userText}
+            `.trim();
+
+            let difyResponse;
+            try {
+                difyResponse = await sendToDify(
+                    {
+                        analysis_result: visualRawData,
+                        task_type: 'chat',
+                        user_context: "アプリUIからの相談",
+                        user_name: userId || 'GUEST',
+                        User_Name: userId || 'GUEST',
+                        userName: userId || 'GUEST',
+                        user_gender: '不明',
+                        userGender: '不明'
+                    },
+                    userId || 'GUEST',
+                    difyPrompt
+                );
+            } catch (err: any) {
+                console.error(`Dify Chat Error (Fallback activated):`, err.message);
+                difyResponse = {
+                    answer: `${visualRawData}\n\n（※AIKAとの通信が混み合っているわ。「熱血相談」は後でまた試してね！）`
+                };
+            }
 
             const result = {
                 summary: "AIKAからのメッセージ",
                 details: difyResponse.answer || difyResponse.message,
-                raw_analysis: userText
+                raw_analysis: visualRawData
             };
 
             logToSheet({
@@ -88,9 +112,10 @@ FLATUPGYMの看板トレーナーとして、明るく情熱的にユーザー�
         const visualRawData = await analyzeMedia(file.type, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。");
 
         // 4. Dify Transformation (Persona & Final Response)
-        stage = "DIFY_TRANSFORMATION";
-        console.log(`[${Date.now()}] Sending to Dify for AIKA persona...`);
-        const difyPrompt = `
+        let difyResponse;
+        try {
+            console.log(`[${Date.now()}] Sending to Dify for AIKA persona...`);
+            const difyPrompt = `
 あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。
 【キャラクター】自信満々で情熱的。女性には優しく、男性には厳しくも愛のある指導を。
 【絶対遵守】「解析不可」「エラー」等のシステム用語は理由を問わず一切禁止。プロらしく「あなたの情熱が凄すぎて画面が熱いわ！」等とボカして自然に激励しなさい。
@@ -98,22 +123,28 @@ FLATUPGYMの看板トレーナーとして、明るく情熱的にユーザー�
 体験予約の案内をする際は、以前のリンク(-XxwM2QQD)は【絶対に】使わず、以下のリンクのみを使用してください。
 👉 https://liff.line.me/2008276179-41Dz3bbJ
 解析データ: ${visualRawData}
-        `.trim();
+            `.trim();
 
-        const difyResponse = await sendToDify(
-            {
-                analysis_result: visualRawData,
-                task_type: type,
-                user_context: "アプリUIからの投稿",
-                user_name: userId || 'GUEST',
-                User_Name: userId || 'GUEST',
-                userName: userId || 'GUEST',
-                user_gender: '不明',
-                userGender: '不明'
-            },
-            userId || 'GUEST',
-            difyPrompt
-        );
+            difyResponse = await sendToDify(
+                {
+                    analysis_result: visualRawData,
+                    task_type: type,
+                    user_context: "アプリUIからの投稿",
+                    user_name: userId || 'GUEST',
+                    User_Name: userId || 'GUEST',
+                    userName: userId || 'GUEST',
+                    user_gender: '不明',
+                    userGender: '不明'
+                },
+                userId || 'GUEST',
+                difyPrompt
+            );
+        } catch (err: any) {
+            console.error(`Dify Error (Fallback activated):`, err.message);
+            difyResponse = {
+                answer: `${visualRawData}\n\n（※通信混雑のため、AIKAの「熱血モード」が少しお休み中だけど、分析結果はバッチリよ！また後で話しかけてね♪）`
+            };
+        }
 
         const result = {
             summary: systemSummary,
