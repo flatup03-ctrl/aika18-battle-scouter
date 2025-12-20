@@ -18,7 +18,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * 「止まらない・壊れない」AIKA体験を支えるコアエンジン。
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
-    console.log(`[Gemini] v2.7.3 AIKA Engine triggered for ${mimeType}...`);
+    console.log(`[Gemini] v2.7.4 AIKA Engine triggered for ${mimeType}...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");

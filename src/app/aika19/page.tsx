@@ -76,7 +76,7 @@ export default function AI18Page() {
     useEffect(() => {
         let isMounted = true;
         const startTime = Date.now();
-        const VERSION = "2.7.3";
+        const VERSION = "2.7.4";
         console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         const startApp = async () => {
             try {
@@ -396,7 +396,7 @@ export default function AI18Page() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.3 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.4 Optimized</p>
                             </div>
                         </div>
                     )}
