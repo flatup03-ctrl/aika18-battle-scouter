@@ -74,30 +74,39 @@ export default function AI18Page() {
     };
 
     useEffect(() => {
+        let isMounted = true;
+        const startTime = Date.now();
+        const VERSION = "2.7.3";
+        console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
         const startApp = async () => {
             try {
                 const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2008276179-XxwM2QQD';
 
+                // Initial LIFF Init with 400/403 recovery
                 try {
                     await liff.init({ liffId });
                 } catch (err: any) {
-                    const errStr = err.message || err.toString() || '';
-                    if (errStr.includes('code_verifier')) {
-                        console.warn('LIFF: code_verifier mismatch detected. Cleaning URL...');
+                    const errStr = (err.message || err.toString() || '').toLowerCase();
+                    // Handle common LIFF init / code_verifier issues
+                    if (errStr.includes('code_verifier') || errStr.includes('400') || errStr.includes('403')) {
+                        console.warn('LIFF: Configuration or session error detected. Redirecting to clean state...');
                         const url = new URL(window.location.href);
-                        url.searchParams.delete('code');
-                        url.searchParams.delete('state');
-                        url.searchParams.delete('liff.state');
-                        window.location.replace(url.toString());
-                        return;
+                        if (url.searchParams.has('code')) {
+                            url.searchParams.delete('code');
+                            url.searchParams.delete('state');
+                            window.location.replace(url.toString());
+                            return;
+                        }
                     }
                     throw err;
                 }
 
+                if (!isMounted) return;
+
                 if (liff.isLoggedIn()) {
                     const p = await liff.getProfile();
-                    setProfile(p);
-                    setStatus('ready');
+                    if (isMounted) setProfile(p);
+                    if (isMounted) setStatus('ready');
                 } else {
                     if (process.env.NODE_ENV === 'development') {
                         setProfile({ userId: 'DEV_USER_ID', displayName: 'ふんわりユーザー' });
@@ -110,12 +119,15 @@ export default function AI18Page() {
                     }
                 }
             } catch (e: any) {
-                console.error('LIFF Init Error', e);
-                setProfile({ userId: 'GUEST_USER', displayName: 'ゲスト' });
-                setStatus('ready');
+                console.error('LIFF Init Error (Recovered with Guest):', e);
+                if (isMounted) {
+                    setProfile({ userId: 'GUEST_USER', displayName: 'ゲスト' });
+                    setStatus('ready');
+                }
             }
         };
         startApp();
+        return () => { isMounted = false; };
     }, []);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -384,7 +396,7 @@ export default function AI18Page() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.2 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.3 Optimized</p>
                             </div>
                         </div>
                     )}
