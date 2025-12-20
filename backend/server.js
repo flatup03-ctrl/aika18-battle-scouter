@@ -98,10 +98,15 @@ app.post('/api/analyze', async (req, res) => {
 
         // 2. OpenAI/Gemini Analysis
         const resultText = await geminiService.analyzeVideo(tempFilePath);
-        console.log('Analysis result:', resultText.slice(0, 50) + '...');
+        console.log('Gemini Analysis result length:', resultText.length);
 
-        // 3. Push to LINE
-        await lineService.pushMessage(userId, "【解析完了】\n" + resultText);
+        // 3. Dify Persona Generation (New Flow)
+        const { difyService } = await import('./services/dify.js');
+        const aikaResponse = await difyService.sendToDify(resultText, userId);
+        console.log('Dify Response length:', aikaResponse.length);
+
+        // 4. Push to LINE
+        await lineService.pushMessage(userId, aikaResponse);
 
       } catch (error) {
         console.error('Async Analysis Error:', error);

@@ -29,9 +29,9 @@ export const geminiService = {
             let file = await fileManager.getFile(uploadResponse.file.name);
             let attempts = 0;
             while (file.state === "PROCESSING") {
-                if (attempts > 30) throw new Error("Timeout waiting for video processing"); // 60s timeout
+                if (attempts > 30) throw new Error("Timeout waiting for video processing"); // 150s timeout
                 process.stdout.write(".");
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+                await new Promise((resolve) => setTimeout(resolve, 5000));
                 file = await fileManager.getFile(uploadResponse.file.name);
                 attempts++;
             }
