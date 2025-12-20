@@ -76,7 +76,7 @@ export default function AIKAPage() {
     useEffect(() => {
         let isMounted = true;
         const startTime = Date.now();
-        const VERSION = "2.8.1";
+        const VERSION = "2.8.2";
         console.log(`[${startTime}] --- AIKA UI v${VERSION} Init ---`);
         const startApp = async () => {
             try {
@@ -396,7 +396,7 @@ export default function AIKAPage() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.8.1 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.8.2 Optimized</p>
                             </div>
                         </div>
                     )}

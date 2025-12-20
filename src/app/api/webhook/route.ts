@@ -46,16 +46,21 @@ async function handleMessageEvent(event: any) {
 
     // Handle only Image and Video
     if (message.type !== 'image' && message.type !== 'video') {
-        if (message.type === 'text') {
-            const userMsg = message.text;
-            logToSheet({
-                userId,
-                type: 'Text (LINE)',
-                userContent: userMsg,
-                aiResponse: 'N/A (Standard Guide)'
-            }).catch(err => console.error('Text Logging Error:', err));
-            await replyMessage(replyToken, "画像か動画を送ってくれたら、公式トレーナーのAIKA（アイカ）が解析しちゃうわよ！🥊🥗\n今は格闘技のフォームや、食事の写真を待ってるわね♪");
+        const userMsg = message.text;
+
+        // Keyword Detection: Booking / Trial / Visit
+        if (userMsg.includes('予約') || userMsg.includes('体験') || userMsg.includes('申し込み') || userMsg.includes('見学')) {
+            await replyMessage(replyToken, "体験予約をご検討ね！嬉しいわ！🥊✨\nこちらのリンクから簡単に予約できるわよ。ジムで会えるのを楽しみにしてるわね！\n\n🥋 無料体験予約: https://liff.line.me/2008276179-41Dz3bbJ");
+        } else {
+            await replyMessage(replyToken, "公式トレーナーのAIKA（アイカ）よ！🥊🥗\n画像か動画を送ってくれたら、プロの視点で解析しちゃうわよ！\n今は格闘技のフォームや、食事の写真を待ってるわね♪");
         }
+
+        logToSheet({
+            userId,
+            type: 'Text (LINE)',
+            userContent: userMsg,
+            aiResponse: 'Keyword/General Reply sent'
+        }).catch(err => console.error('Text Logging Error:', err));
         return;
     }
 

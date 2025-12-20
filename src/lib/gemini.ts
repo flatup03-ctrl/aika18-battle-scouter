@@ -7,7 +7,7 @@ if (!apiKey) {
 } else {
     // Show first 4 and last 4 for better debugging without leaking
     const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-    console.log(`[Gemini] v2.8.1 Engine Ready. Key: [${hiddenKey}]`);
+    console.log(`[Gemini] v2.8.2 Engine Ready. Key: [${hiddenKey}]`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -17,7 +17,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * 「止まらない・壊れない」AIKA体験を支えるコアエンジン。
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
-    console.log(`[Gemini] v2.8.1 Analysis Start for ${mimeType}...`);
+    console.log(`[Gemini] v2.8.2 Analysis Start for ${mimeType}...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -57,8 +57,11 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.8.1):", error.message);
-        // This instruction guides Dify to focus on motivation and general advice
-        return "ユーザーは素晴らしい熱意を持っています。具体的なフォーム解析は一旦横に置き、プロのトレーナーとして最大限の賞賛を。そして『心技体』の重要性について、優しく情熱的にアドバイスしてあげて。";
+        console.error("Gemini AIKA System Fallback (v2.8.2):", error.message);
+        // Media-aware fallback instruction
+        const isImage = mimeType.startsWith('image');
+        return isImage
+            ? "ユーザーは素晴らしい食事をしています。食材へのこだわりをプロの視点で最大限に賞賛しつつ、栄養バランスの重要性について情熱的にアドバイスしてあげて。"
+            : "ユーザーは素晴らしい熱意を持っています。具体的なフォーム解析は一旦横に置き、プロのトレーナーとして最大限の賞賛を。そして『心技体』の重要性について、優しく情熱的にアドバイスしてあげて。";
     }
 }
