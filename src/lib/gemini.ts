@@ -18,13 +18,13 @@ const genAI = new GoogleGenerativeAI(apiKey);
  * mimeType, dataBase64が未指定の場合はテキストのみの解析を行う。
  */
 export async function analyzeMedia(mimeType?: string, dataBase64?: string, prompt: string = "") {
-    console.log(`[Gemini] v2.9.1 (Pro) Analysis Start...`);
+    console.log(`[Gemini] v2.9.2 (Flash) Analysis Start...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Use standard ID. 'latest' alias proved unstable.
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        // Reverting to Flash-001 as Pro models are 404ing in this env.
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>
@@ -57,7 +57,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.9.1):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.9.2):", error.message);
         // User-ready fallback messages
         const isImage = mimeType?.startsWith('image');
         const isVideo = mimeType?.startsWith('video');
