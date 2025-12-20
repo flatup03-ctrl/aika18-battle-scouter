@@ -57,8 +57,8 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
             // Upload & Wait
             uploadedFile = await uploadAndPoll(filePath, mimeType);
 
-            // Analyze with Flash-001 (Fast & Free)
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            // Analyze with Flash-001 (Stable)
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
             const result = await model.generateContent({
                 contents: [{
@@ -92,8 +92,8 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
 
-        // Use Flash for everything now
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Use Flash-001 for everything now
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
         // 20s timeout to escape before proxy kills it
         const timeoutPromise = new Promise((_, reject) =>
@@ -126,7 +126,7 @@ export async function analyzeMedia(mimeType?: string, dataBase64?: string, promp
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.9.4):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.9.5):", error.message);
         // User-ready fallback messages
         const isImage = mimeType?.startsWith('image');
         const isVideo = mimeType?.startsWith('video');
