@@ -33,6 +33,12 @@ export async function sendToDify(
 
         if (!response.ok) {
             const errorText = await response.text();
+
+            // Helpful logging for Model/Connection errors
+            if (response.status === 404 || response.status === 400) {
+                console.error(`[Dify] Model/Connection Error (${response.status}):`, errorText);
+            }
+
             throw new Error(`Dify API Error: ${response.status} ${errorText}`);
         }
 

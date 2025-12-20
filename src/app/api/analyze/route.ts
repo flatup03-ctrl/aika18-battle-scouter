@@ -115,18 +115,32 @@ export async function POST(request: Request) {
             const fs = require('fs/promises');
             const path = require('path');
             const os = require('os');
+            const { transcodeVideo } = require('@/lib/transcode');
+
             const tempFilePath = path.join(os.tmpdir(), `upload_${Date.now()}_${file.name}`);
+            const transcodedFilePath = path.join(os.tmpdir(), `transcoded_${Date.now()}.mp4`);
 
             await fs.writeFile(tempFilePath, buffer);
             console.log(`[UI] Video saved to ${tempFilePath}`);
 
             try {
-                // Pass filePath to analyzeMedia (File API Flow)
-                // Use Flash-001 constant effectively via v2.9.6
-                visualRawData = await analyzeMedia(file.type, undefined, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。", tempFilePath);
+                // 1. Transcode to H.264/MP4 (Fixes 'FAILED' error for iPhone/HDR)
+                console.log(`[UI] Transcoding video...`);
+                await transcodeVideo(tempFilePath, transcodedFilePath);
+                console.log(`[UI] Transcode complete: ${transcodedFilePath}`);
+
+                // 2. Pass transcoded path to analyzeMedia (File API Flow)
+                // We use 'video/mp4' explicitly because we transcoded it.
+                visualRawData = await analyzeMedia('video/mp4', undefined, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。", transcodedFilePath);
+
+            } catch (error: any) {
+                console.error("Video Processing Error:", error);
+                // Throw user-friendly error that will be caught by outer catch
+                throw new Error("動画の処理に失敗しました。ファイル形式が特殊か、壊れている可能性があります。");
             } finally {
                 // Cleanup
                 await fs.unlink(tempFilePath).catch(() => { });
+                await fs.unlink(transcodedFilePath).catch(() => { });
             }
         } else {
             // Image: Inline (Fast)

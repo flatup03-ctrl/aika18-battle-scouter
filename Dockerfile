@@ -48,6 +48,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV production
 
+# Install FFmpeg for video transcoding
+RUN apk add --no-cache ffmpeg
+
 # ビルド成果物と実行に必要なファイルをコピー
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
