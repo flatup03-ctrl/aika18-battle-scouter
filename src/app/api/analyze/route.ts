@@ -13,9 +13,9 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
     let stage = "INIT";
     try {
+        const VERSION = "2.8.0";
         const startTime = Date.now();
-        const VERSION = "2.7.5";
-        console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
+        console.log(`[${startTime}] --- AIKA Analytics Request v${VERSION} Start ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
 
         stage = "UPLOAD_PARSING";
@@ -89,7 +89,7 @@ FLATUPGYMの看板トレーナーとして、明るく情熱的にユーザー�
 
         // 4. Dify Transformation (Persona & Final Response)
         stage = "DIFY_TRANSFORMATION";
-        console.log(`[${Date.now()}] Sending to Dify for AI 18 persona...`);
+        console.log(`[${Date.now()}] Sending to Dify for AIKA persona...`);
         const difyPrompt = `
 あなたはFLATUPGYMの公式トレーナー「AIKA（アイカ）」です。
 【キャラクター】自信満々で情熱的。女性には優しく、男性には厳しくも愛のある指導を。

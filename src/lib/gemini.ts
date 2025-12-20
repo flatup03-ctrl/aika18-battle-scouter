@@ -1,24 +1,23 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
-// Initialize Gemini AI
-const rawApiKey = process.env.GOOGLE_API_KEY || "AIzaSyBMyjJJ0rL037sgmue3mPRmWar78kNtRbo";
-const apiKey = rawApiKey.trim();
+const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
 
-if (!process.env.GOOGLE_API_KEY) {
-    console.warn("Using internal fallback Gemini API Key.");
+if (!apiKey) {
+    console.warn("⚠️ [Gemini] GOOGLE_API_KEY is MISSING! Analysis will fail.");
 } else {
-    const hiddenKey = `${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`;
-    console.log(`Gemini Key Check: [${hiddenKey}] (Length: ${apiKey.length})`);
+    // Show first 4 and last 4 for better debugging without leaking
+    const hiddenKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+    console.log(`[Gemini] v2.8.0 Engine Ready. Key: [${hiddenKey}]`);
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
- * 動画や画像を解析する共通関数 (完全安定重視 v2.7.0)
+ * 動画や画像を解析する共通関数 (v2.7.5)
  * 「止まらない・壊れない」AIKA体験を支えるコアエンジン。
  */
 export async function analyzeMedia(mimeType: string, dataBase64: string, prompt: string) {
-    console.log(`[Gemini] v2.7.5 AIKA Engine triggered for ${mimeType}...`);
+    console.log(`[Gemini] v2.8.0 Analysis Start for ${mimeType}...`);
 
     try {
         if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -58,7 +57,7 @@ export async function analyzeMedia(mimeType: string, dataBase64: string, prompt:
         return await Promise.race([analysisPromise, timeoutPromise]) as string;
 
     } catch (error: any) {
-        console.error("Gemini AIKA System Fallback (v2.7.0):", error.message);
+        console.error("Gemini AIKA System Fallback (v2.8.0):", error.message);
         // This instruction guides Dify to focus on motivation and general advice
         return "ユーザーは素晴らしい熱意を持っています。具体的なフォーム解析は一旦横に置き、プロのトレーナーとして最大限の賞賛を。そして『心技体』の重要性について、優しく情熱的にアドバイスしてあげて。";
     }

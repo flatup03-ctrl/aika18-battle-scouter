@@ -7,7 +7,7 @@ import Image from "next/image";
 // Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-export default function AI18Page() {
+export default function AIKAPage() {
     const [status, setStatus] = useState<'initializing' | 'ready' | 'uploading' | 'processing' | 'complete' | 'error'>('initializing');
     const [profile, setProfile] = useState<any>(null);
     const [errorMsg, setErrorMsg] = useState('');
@@ -76,8 +76,8 @@ export default function AI18Page() {
     useEffect(() => {
         let isMounted = true;
         const startTime = Date.now();
-        const VERSION = "2.7.5";
-        console.log(`[${startTime}] --- Start Analyze Request v${VERSION} ---`);
+        const VERSION = "2.8.0";
+        console.log(`[${startTime}] --- AIKA UI v${VERSION} Init ---`);
         const startApp = async () => {
             try {
                 const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2008276179-XxwM2QQD';
@@ -396,7 +396,7 @@ export default function AI18Page() {
                                 >
                                     🏠 メニューに戻る
                                 </button>
-                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.7.5 Optimized</p>
+                                <p className="mt-4 text-[9px] font-bold text-[#FF8DA1]/30 tracking-widest uppercase">System v2.8.0 Optimized</p>
                             </div>
                         </div>
                     )}
