@@ -13,7 +13,7 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
     let stage = "INIT";
     try {
-        const VERSION = "2.9.5";
+        const VERSION = "2.9.6";
         const startTime = Date.now();
         console.log(`[${startTime}] --- AIKA Analytics Request v${VERSION} Start ---`);
         console.log(`Debug: GOOGLE_API_KEY length is ${process.env.GOOGLE_API_KEY?.length || 0}`);
@@ -94,21 +94,44 @@ export async function POST(request: Request) {
 
         console.log(`Analyzing: ${file.name} (Type: ${type}, Size: ${file.size})`);
 
-        // 1. Process File to Base64
+        // 1. Process File to Base64 (still needed for image or fallback) / Temp file for Video
         stage = "FILE_PREPARATION";
         const arrayBuffer = await file.arrayBuffer();
-        const base64Data = Buffer.from(arrayBuffer).toString('base64');
-        console.log(`[${Date.now()}] Base64 prep complete`);
+        const buffer = Buffer.from(arrayBuffer);
+        const base64Data = buffer.toString('base64');
+        console.log(`[${Date.now()}] Data prep complete`);
 
         const taskLabel = type === 'image' ? 'お食事' : 'トレーニング';
-        const personaPrompt = `以下の${taskLabel}を分析して褒め＋アドバイスを。`.trim();
-
         let systemSummary = type === 'image' ? "食事・カロリー診断結果" : "戦闘力分析結果";
 
         // 3. ACTUAL Gemini Analysis (Visual Extraction Only)
         stage = "GEMINI_ANALYSIS";
         console.log(`[${Date.now()}] Starting Visual Extraction for ${file.type}...`);
-        const visualRawData = await analyzeMedia(file.type, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。");
+
+        let visualRawData = "";
+
+        if (type === 'video' || file.type.startsWith('video/')) {
+            // Video: Save to temp file for File API (Robust)
+            const fs = require('fs/promises');
+            const path = require('path');
+            const os = require('os');
+            const tempFilePath = path.join(os.tmpdir(), `upload_${Date.now()}_${file.name}`);
+
+            await fs.writeFile(tempFilePath, buffer);
+            console.log(`[UI] Video saved to ${tempFilePath}`);
+
+            try {
+                // Pass filePath to analyzeMedia (File API Flow)
+                // Use Flash-001 constant effectively via v2.9.6
+                visualRawData = await analyzeMedia(file.type, undefined, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。", tempFilePath);
+            } finally {
+                // Cleanup
+                await fs.unlink(tempFilePath).catch(() => { });
+            }
+        } else {
+            // Image: Inline (Fast)
+            visualRawData = await analyzeMedia(file.type, base64Data, "専門的な観点（フォームや食材）から、客観的な事実と改善点を1つだけ。");
+        }
 
         // 4. Dify Transformation (Persona & Final Response)
         let difyResponse;
