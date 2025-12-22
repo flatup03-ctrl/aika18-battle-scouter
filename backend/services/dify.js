@@ -11,22 +11,20 @@ export const difyService = {
      * @param {string} userId - The LINE User ID.
      * @returns {Promise<string>} The response from Dify (AIKA's persona message).
      */
-    sendToDify: async (analysisResult, userId) => {
+    sendToDify: async (content, userId, userName = "ゲスト", taskType = "normal_chat") => {
         if (!DIFY_API_KEY) {
-            console.warn("DIFY_API_KEY is not set. Returning raw analysis.");
-            return "（Dify連携未設定）解析結果：\n" + analysisResult;
+            console.warn("DIFY_API_KEY is not set. Returning content.");
+            return "（Dify連携未設定）内容：\n" + content;
         }
 
         try {
-            console.log(`Sending to Dify for User: ${userId}...`);
+            console.log(`Sending to Dify for User: ${userId} (Task: ${taskType})...`);
             const inputs = {
-                analysis_result: analysisResult,
-                user_name: "ゲスト", // Backend might not have profile yet
-                task_type: "video_analysis"
+                analysis_result: content, // Geminiの代わりにユーザー入力を入れる
+                user_name: userName,
+                task_type: taskType
             };
 
-            // Note: Node.js 18+ (which we use) supports global fetch. 
-            // If older, import 'node-fetch'
             const response = await fetch(`${DIFY_API_URL}/chat-messages`, {
                 method: 'POST',
                 headers: {
@@ -35,7 +33,7 @@ export const difyService = {
                 },
                 body: JSON.stringify({
                     inputs: inputs,
-                    query: "解析結果に基づき返答してください", // Fixed query to trigger Dify flow
+                    query: content, // 直接入力をクエリにする
                     response_mode: "blocking",
                     user: userId,
                     conversation_id: ""
@@ -57,7 +55,7 @@ export const difyService = {
         } catch (error) {
             console.error("Dify Service Error:", error);
             // Fallback if Dify fails
-            return `（Difyとの連携に失敗しました...）\n\n【解析結果】\n${analysisResult}`;
+            return `（Difyとの連携に失敗しました...）\n\n【提供内容】\n${content}`;
         }
     }
 };

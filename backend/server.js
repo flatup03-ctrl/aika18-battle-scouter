@@ -23,105 +23,69 @@ app.use(express.json());
 
 // Health Check
 app.get('/', (req, res) => {
-  res.status(200).send('AIKA Backend is running');
+  res.status(200).send('AIKA (AIBO) Backend is running');
 });
 
-// 1. Request Upload URL
-app.post('/api/upload-request', async (req, res) => {
+/**
+ * 2. 練習ノート投稿 (New Aibo Implementation)
+ */
+app.post('/api/notes', async (req, res) => {
   try {
-    // Safety Check
-    if (!circuitBreaker.checkLimit()) {
-      return res.status(429).json({
-        error: 'Daily limit reached',
-        message: '本日の解析受付は終了しました。また明日お試しください。'
-      });
+    const { content, userId, userName } = req.body;
+
+    if (!content || !userId) {
+      return res.status(400).json({ error: 'Missing content or userId' });
     }
 
-    const { fileName, contentType } = req.body;
-    // Generate unique key
-    const uniqueKey = `videos/${Date.now()}_${fileName || 'video.mp4'}`;
+    // 1. ユーザーの取得・作成
+    const { dbService } = await import('./services/db.js');
+    await dbService.getOrCreateUser(userId, userName || 'ゲスト');
 
-    // Get Presigned URL
-    const uploadUrl = await r2Service.getUploadUrl(uniqueKey, contentType);
-
-    res.json({ uploadUrl, fileKey: uniqueKey });
-  } catch (error) {
-    console.error('Upload Request Error:', error);
-    // DEBUG: Expose error to client
-    const r2ConfigCheck = {
-      accountId: !!process.env.R2_ACCOUNT_ID,
-      keyId: !!process.env.R2_ACCESS_KEY_ID,
-      secret: !!process.env.R2_SECRET_ACCESS_KEY,
-      bucket: !!process.env.R2_BUCKET_NAME,
-    };
-    console.log('R2 Config Check:', r2ConfigCheck);
-
-    res.status(500).json({
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      configCheck: r2ConfigCheck
-    });
-  }
-});
-
-app.post('/api/analyze', async (req, res) => {
-  try {
-    const { fileKey, userId } = req.body;
-
-    if (!fileKey || !userId) {
-      return res.status(400).json({ error: 'Missing fileKey or userId' });
-    }
-
-    // Double check limit before committing resources
+    // 立入制限（サーキットブレーカー）チェック
     if (!circuitBreaker.checkLimit()) {
-      // Even if they uploaded, we can't analyze.
-      // Notify user immediately via response
       return res.status(429).json({ message: '本日の受付は終了しました' });
     }
 
-    // Record Usage immediately to reserve slot (or after success? Standard is leaky bucket, but for strict cost, reserve now).
-    circuitBreaker.recordUsage('GEMINI_ANALYSIS', 0); // Cost updated later if needed, or fixed 1 unit
+    // 2. 応答開始を即時返却
+    res.status(202).json({ message: 'Note being processed', status: 'processing' });
 
-    // Return immediately to client so LIFF doesn't hang
-    res.status(202).json({ message: 'Analysis started', status: 'processing' });
-
-    // Async Processing
+    // 3. 非同期処理：AI回答生成とプッシュ通知
     (async () => {
-      const tempFilePath = path.join('/tmp', path.basename(fileKey));
       try {
-        console.log(`Starting analysis for ${fileKey}...`);
-
-        // 1. Download from R2
-        const s3Stream = await r2Service.getFileStream(fileKey);
-        await pipeline(s3Stream, fs.createWriteStream(tempFilePath));
-        console.log('Downloaded to', tempFilePath);
-
-        // 2. OpenAI/Gemini Analysis
-        const resultText = await geminiService.analyzeVideo(tempFilePath);
-        console.log('Gemini Analysis result length:', resultText.length);
-
-        // 3. Dify Persona Generation (New Flow)
         const { difyService } = await import('./services/dify.js');
-        const aikaResponse = await difyService.sendToDify(resultText, userId);
-        console.log('Dify Response length:', aikaResponse.length);
 
-        // 4. Push to LINE
+        // 会話履歴の取得（短期記憶）
+        const history = await dbService.getRecentConversations(userId, 5);
+        const context = history.map(h => `${h.sender === 'user' ? 'User' : 'AI'}: ${h.message}`).join('\n');
+
+        // Dify連携 (練習ノートとして処理)
+        const taskType = content.includes('食事') ? 'image_analysis' : 'normal_chat'; // Difyのプロンプト分岐に合わせる
+        const aikaResponse = await difyService.sendToDify(content, userId, userName, taskType);
+
+        // DB永続化
+        await dbService.saveNote(userId, content, aikaResponse);
+        await dbService.saveConversation(userId, content, 'user');
+        await dbService.saveConversation(userId, aikaResponse, 'ai');
+        await dbService.addPoints(userId, 5); // ノート投稿で5ポイント
+
+        // LINEプッシュ送信
         await lineService.pushMessage(userId, aikaResponse);
 
       } catch (error) {
-        console.error('Async Analysis Error:', error);
-        await lineService.pushMessage(userId, "【エラー】\n動画の解析中にエラーが発生しました。もう一度お試しください。");
-      } finally {
-        // Cleanup
-        if (fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-        }
+        console.error('Async Note Processing Error:', error);
+        await lineService.pushMessage(userId, "【申し訳ありません】ノートの処理中にエラーが発生しました。");
       }
     })();
+
   } catch (error) {
-    console.error('Analyze Request Error:', error);
-    res.status(500).json({ error: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
+    console.error('Notes API Error:', error);
+    res.status(500).json({ error: error.message });
   }
+});
+
+// 旧動画解析エンドポイントは廃止されました
+app.post('/api/analyze', (req, res) => {
+  res.status(410).json({ message: 'Video analysis is deprecated for server efficiency.' });
 });
 
 const port = process.env.PORT || 8080;

@@ -8,14 +8,12 @@ import Image from "next/image";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function AIKAPage() {
-    const [status, setStatus] = useState<'initializing' | 'ready' | 'uploading' | 'processing' | 'complete' | 'error'>('initializing');
+    const [status, setStatus] = useState<'initializing' | 'ready' | 'processing' | 'complete' | 'error'>('initializing');
     const [profile, setProfile] = useState<any>(null);
     const [errorMsg, setErrorMsg] = useState('');
-    const [progress, setProgress] = useState(0);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
-    const [analysisType, setAnalysisType] = useState<'video' | 'image' | 'chat'>('video');
+    const [noteContent, setNoteContent] = useState('');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleReset = () => {
         if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -130,111 +128,36 @@ export default function AIKAPage() {
         return () => { isMounted = false; };
     }, []);
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // Media logic removed for server efficiency (AIBO Phase)
 
-        setStatus('uploading');
-        setProgress(10);
+    const submitNote = async (text?: string) => {
+        const content = text || noteContent;
+        if (!content.trim()) return;
+
+        setStatus('processing');
         setErrorMsg('');
-
         try {
-            let fileToSend = file;
-
-            // 1. Client-side Image Compression (Optimization for large phone photos)
-            if (analysisType === 'image' && file.type.startsWith('image/')) {
-                setProgress(15);
-                try {
-                    fileToSend = await compressImage(file);
-                } catch (err) {
-                    console.warn('Compression failed, sending original:', err);
-                }
-            }
-
-            // 2. Final Size Check (Limit to 50MB after compression attempt)
-            if (fileToSend.size > 50 * 1024 * 1024) {
-                throw new Error('ファイルが大きすぎます（50MB上限）。もう少し短くするか、画質を落としてみてね♪');
-            }
-
-            // Generate preview for UI
-            const url = URL.createObjectURL(fileToSend);
-            setPreviewUrl(url);
-
-            const origin = typeof window !== 'undefined' ? window.location.origin : '';
-            const analyzeUrl = `${origin}/api/analyze`;
-
-            const formData = new FormData();
-            formData.append('file', fileToSend);
-            formData.append('userId', profile?.displayName || profile?.userId || 'GUEST_USER');
-            formData.append('type', analysisType);
-
-            // Track progress manually (simulated for Fetch, but real for the flow)
-            const interval = setInterval(() => {
-                setProgress(prev => (prev < 90 ? prev + 5 : prev));
-            }, 500);
-
-            const analyzeRes = await fetch(analyzeUrl, {
+            // VPSバックエンドのURL (auth.tsの設定を流用または直接指定)
+            const vpsUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://162.43.30.218:8080';
+            const res = await fetch(`${vpsUrl}/api/notes`, {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: content,
+                    userId: profile?.userId || 'GUEST_USER',
+                    userName: profile?.displayName || 'ゲスト'
+                }),
             });
 
-            clearInterval(interval);
+            if (!res.ok) throw new Error('通信エラーが発生しました。時間を置いて試してね♪');
 
-            if (!analyzeRes.ok) {
-                const errData = await analyzeRes.json().catch(() => ({}));
-                throw new Error(errData.error || `解析エラーが発生しました（Status: ${analyzeRes.status}）`);
-            }
-
-            const data = await analyzeRes.json();
-            setAnalysisResult(data.result);
-            setProgress(100);
+            // 非同期処理のため、一旦「受付完了」の状態にする
             setStatus('complete');
-
+            setAnalysisResult({ details: "練習ノートを受け付けたよ！まもなくAIKAからLINEでアドバイスが届くから、楽しみにしててね♪" });
+            setNoteContent('');
         } catch (err: any) {
-            console.error('Flow Error:', err);
-            setErrorMsg(err.message || '通信エラーが発生しました。インターネット接続を確認してね♪');
+            setErrorMsg(err.message || 'エラーが発生しました');
             setStatus('error');
-        } finally {
-            // Clean up the object URL after some time or on next select
-            // For now, we keep it for the result view if we want to show it there too
-        }
-    };
-
-    const triggerAction = async (type: 'video' | 'image' | 'chat') => {
-        setAnalysisType(type);
-        if (type === 'chat') {
-            const promptContent = window.prompt("AI 18号に相談したいことを入力してね♪\n（例：トレーニングのコツは？、今日の食事の評価は？）");
-            if (!promptContent) return;
-
-            setStatus('processing');
-            setProgress(50);
-            try {
-                const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                const analyzeUrl = `${origin}/api/analyze`;
-
-                const formData = new FormData();
-                formData.append('type', 'chat');
-                formData.append('text', promptContent);
-                formData.append('userId', profile?.displayName || profile?.userId || 'GUEST_USER');
-
-                const res = await fetch(analyzeUrl, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!res.ok) throw new Error('通信エラーが発生しました');
-                const data = await res.json();
-                setAnalysisResult(data.result);
-                setStatus('complete');
-            } catch (err: any) {
-                setErrorMsg(err.message || 'エラーが発生しました');
-                setStatus('error');
-            }
-            return;
-        }
-        if (fileInputRef.current) {
-            fileInputRef.current.accept = type === 'video' ? 'video/*' : 'image/*';
-            fileInputRef.current.click();
         }
     };
 
@@ -284,54 +207,41 @@ export default function AIKAPage() {
                     )}
 
                     {status === 'ready' && (
-                        <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-5 duration-700">
-                            {[
-                                { id: 'video', label: '戦闘力分析', desc: '10秒以内の動画でチェック！', icon: '🥊', bg: 'bg-[#B0E0E6]/90', text: 'text-[#4682B4]' },
-                                { id: 'image', label: 'カロリー計算', desc: '今日のごはんは何かな？', icon: '🥗', bg: 'bg-[#C8F0C8]/90', text: 'text-[#2E8B57]' },
-                                { id: 'chat', label: 'お悩み相談', desc: 'なんでもはなしてね♪', icon: '🌸', bg: 'bg-[#FFD1DC]/90', text: 'text-[#DB7093]' },
-                            ].map((item) => (
+                        <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                            {/* 練習ノート入力エリア */}
+                            <div className="bg-white/50 p-6 rounded-[2.5rem] shadow-inner border-2 border-pink-50">
+                                <h3 className="text-sm font-black text-[#FF8DA1] mb-3 text-left pl-2">📝 今日の練習ノート</h3>
+                                <textarea
+                                    className="w-full h-32 p-4 rounded-[1.8rem] border-none focus:ring-2 focus:ring-pink-200 outline-none text-sm font-bold bg-white/80 resize-none shadow-sm"
+                                    placeholder="今日意識したこと、できたこと、課題などを書いてね♪"
+                                    value={noteContent}
+                                    onChange={(e) => setNoteContent(e.target.value)}
+                                />
                                 <button
-                                    key={item.id}
-                                    onClick={() => triggerAction(item.id as any)}
-                                    className={`relative w-full p-5 rounded-[2.8rem] ${item.bg} group transition-all duration-300 hover:scale-[1.03] active:scale-[0.96] shadow-sm hover:shadow-md flex items-center gap-4 border-b-4 border-black/5`}
+                                    onClick={() => submitNote()}
+                                    disabled={!noteContent.trim()}
+                                    className="w-full mt-4 py-4 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] text-white font-black rounded-[2rem] shadow-lg disabled:opacity-50 active:scale-95 transition-all"
                                 >
-                                    <div className="w-14 h-14 bg-white/70 rounded-[1.8rem] flex items-center justify-center text-3xl shadow-sm group-hover:rotate-12 transition-transform duration-500">
-                                        {item.icon}
-                                    </div>
-                                    <div className="text-left">
-                                        <h3 className={`font-black text-xl ${item.text}`}>{item.label}</h3>
-                                        <p className="text-[10px] font-bold opacity-60">{item.desc}</p>
-                                    </div>
-                                    <div className="ml-auto opacity-20">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
-                                    </div>
+                                    記録する ＋ AIKAに相談
                                 </button>
-                            ))}
-                        </div>
-                    )}
-
-                    {status === 'uploading' && (
-                        <div className="w-full py-4 space-y-5 flex flex-col items-center">
-                            {previewUrl && (
-                                <div className="w-full h-48 relative rounded-2xl overflow-hidden shadow-inner bg-black/5 flex items-center justify-center">
-                                    {analysisType === 'video' ? (
-                                        <video src={previewUrl} className="w-full h-full object-cover" muted playsInline />
-                                    ) : (
-                                        <img src={previewUrl} className="w-full h-full object-cover" alt="preview" />
-                                    )}
-                                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]"></div>
-                                </div>
-                            )}
-                            <div className="w-full px-2">
-                                <div className="flex justify-between items-end mb-2">
-                                    <span className="text-xs font-black text-[#FF8DA1] tracking-widest uppercase">情報をとどけ中...</span>
-                                    <span className="text-3xl font-black text-[#FF8DA1] italic">{progress}%</span>
-                                </div>
-                                <div className="h-5 w-full bg-[#F1F5F9] rounded-full overflow-hidden border-2 border-white shadow-inner">
-                                    <div className="h-full bg-gradient-to-r from-[#FFB6C1] to-[#FF8DA1] transition-all duration-500 rounded-full" style={{ width: `${progress}%` }}></div>
-                                </div>
                             </div>
-                            <p className="text-[10px] font-bold text-[#94A3B8]">わくわくして待っててね♪</p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => submitNote('今日の食事を評価して！')}
+                                    className="p-4 rounded-[2rem] bg-[#C8F0C8]/80 group transition-all hover:scale-105 active:scale-95 shadow-sm border-b-4 border-green-200"
+                                >
+                                    <div className="text-2xl mb-1">🥗</div>
+                                    <h3 className="font-black text-xs text-[#2E8B57]">食事の相談</h3>
+                                </button>
+                                <button
+                                    onClick={() => submitNote('おすすめのプロテインは？')}
+                                    className="p-4 rounded-[2rem] bg-[#FFD1DC]/80 group transition-all hover:scale-105 active:scale-95 shadow-sm border-b-4 border-pink-200"
+                                >
+                                    <div className="text-2xl mb-1">🌸</div>
+                                    <h3 className="font-black text-xs text-[#DB7093]">お悩み相談</h3>
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -401,7 +311,7 @@ export default function AIKAPage() {
                         </div>
                     )}
 
-                    <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
+                    {/* Hidden inputs removed */}
                 </div>
 
                 <div className="mt-12 flex flex-col items-center gap-3 opacity-20">
