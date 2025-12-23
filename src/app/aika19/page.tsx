@@ -130,8 +130,7 @@ export default function AIKAPage() {
     }, []);
     const fetchUserData = async (userId: string) => {
         try {
-            const vpsUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://162.43.30.218:8080';
-            const res = await fetch(`${vpsUrl}/api/user/${userId}`);
+            const res = await fetch(`/api/user/${userId}`);
             if (res.ok) {
                 const data = await res.json();
                 setUserData(data);
@@ -156,9 +155,7 @@ export default function AIKAPage() {
         setStatus('processing');
         setErrorMsg('');
         try {
-            // VPSバックエンドのURL (auth.tsの設定を流用または直接指定)
-            const vpsUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://162.43.30.218:8080';
-            const res = await fetch(`${vpsUrl}/api/notes`, {
+            const res = await fetch(`/api/notes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
