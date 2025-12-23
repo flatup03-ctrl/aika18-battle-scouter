@@ -27,6 +27,25 @@ app.get('/', (req, res) => {
 });
 
 /**
+ * 1. ユーザー情報取得 (Profile, Points, Title)
+ */
+app.get('/api/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { dbService } = await import('./services/db.js');
+    const user = await dbService.getUserInfo(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * 2. 練習ノート投稿 (New Aibo Implementation)
  */
 app.post('/api/notes', async (req, res) => {

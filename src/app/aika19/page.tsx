@@ -13,6 +13,7 @@ export default function AIKAPage() {
     const [errorMsg, setErrorMsg] = useState('');
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [noteContent, setNoteContent] = useState('');
+    const [userData, setUserData] = useState<any>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     const handleReset = () => {
@@ -127,6 +128,24 @@ export default function AIKAPage() {
         startApp();
         return () => { isMounted = false; };
     }, []);
+    const fetchUserData = async (userId: string) => {
+        try {
+            const vpsUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://162.43.30.218:8080';
+            const res = await fetch(`${vpsUrl}/api/user/${userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setUserData(data);
+            }
+        } catch (err) {
+            console.error('Fetch User Data Error:', err);
+        }
+    };
+
+    useEffect(() => {
+        if (profile?.userId) {
+            fetchUserData(profile.userId);
+        }
+    }, [profile]);
 
     // Media logic removed for server efficiency (AIBO Phase)
 
@@ -155,6 +174,11 @@ export default function AIKAPage() {
             setStatus('complete');
             setAnalysisResult({ details: "練習ノートを受け付けたよ！まもなくAIKAからLINEでアドバイスが届くから、楽しみにしててね♪" });
             setNoteContent('');
+
+            // ポイントが加算されるので数秒後に再フェッチ
+            setTimeout(() => {
+                if (profile?.userId) fetchUserData(profile.userId);
+            }, 3000);
         } catch (err: any) {
             setErrorMsg(err.message || 'エラーが発生しました');
             setStatus('error');
@@ -190,7 +214,17 @@ export default function AIKAPage() {
                         <h1 className="text-4xl font-black mb-1 bg-gradient-to-r from-[#FF8DA1] to-[#FFB6C1] bg-clip-text text-transparent tracking-tighter drop-shadow-sm">
                             AI 18号
                         </h1>
-                        <p className="text-[#64748B] text-sm font-bold mb-10 leading-relaxed">
+
+                        {/* 称号・ポイント表示 */}
+                        {userData && (
+                            <div className="mt-4 flex items-center gap-3 bg-pink-50/50 px-6 py-2 rounded-full border border-pink-100 animate-in fade-in zoom-in duration-700">
+                                <span className="text-[10px] font-black text-pink-500 uppercase">称号: {userData.title}</span>
+                                <span className="w-1 h-1 bg-pink-200 rounded-full"></span>
+                                <span className="text-[10px] font-black text-pink-500 uppercase">{userData.points} PT</span>
+                            </div>
+                        )}
+
+                        <p className="text-[#64748B] text-sm font-bold mt-6 mb-10 leading-relaxed">
                             AI 18号が、あなたの毎日を<br />
                             <span className="text-[#FF8DA1] relative group">
                                 そっとサポートしちゃうよ♪
